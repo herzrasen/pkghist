@@ -48,10 +48,6 @@ impl Config {
             format: matches.value_of("output-format").unwrap().parse().unwrap(),
         }
     }
-
-    pub fn is_relevant_package(&self, package: &str) -> bool {
-        self.filters.is_empty() || self.filters.contains(&String::from(package))
-    }
 }
 
 #[cfg(test)]
@@ -137,32 +133,6 @@ mod tests {
         assert_eq!(config.filters.len(), 1);
         assert_eq!(config.with_removed, false);
         assert_eq!(config.removed_only, false)
-    }
-
-    #[test]
-    fn should_be_relevant_when_filters_are_empty() {
-        let config = Config {
-            removed_only: false,
-            with_removed: false,
-            format: Format::Plain,
-            filters: Vec::new(),
-            logfile: "/var/log/pacman.log".to_string(),
-        };
-        assert_eq!(config.is_relevant_package("linux"), true)
-    }
-
-    #[test]
-    fn should_not_be_relevant_with_filters() {
-        let mut filters: Vec<String> = Vec::new();
-        filters.push(String::from("vim"));
-        let config = Config {
-            logfile: String::from("/not/relevant"),
-            with_removed: false,
-            removed_only: false,
-            filters,
-            format: Format::Plain,
-        };
-        assert_eq!(config.is_relevant_package("linux"), false)
     }
 
 }

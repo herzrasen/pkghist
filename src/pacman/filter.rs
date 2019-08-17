@@ -8,12 +8,13 @@ pub trait Filter {
     type Event;
     fn without_installed<'a>(
         &'a self,
-        config: &'a Config,
+        filters: &'a Vec<String>,
     ) -> HashMap<&'a String, Vec<&'a Self::Event>>;
     fn without_removed<'a>(
         &'a self,
-        config: &'a Config,
+        filters: &'a Vec<String>,
     ) -> HashMap<&'a String, Vec<&'a Self::Event>>;
+
     fn filter_packages<'a>(
         &'a self,
         config: &'a Config,
@@ -25,9 +26,9 @@ impl Filter for Vec<PacmanEvent> {
 
     fn without_installed<'a>(
         &'a self,
-        config: &'a Config,
+        filters: &'a Vec<String>,
     ) -> HashMap<&'a String, Vec<&'a PacmanEvent>> {
-        let groups = self.group_relevant(&config);
+        let groups = self.group_relevant(&filters);
         let mut without_installed = groups.clone();
         for (package, mut events) in groups {
             let latest_event = events.latest();
@@ -45,9 +46,9 @@ impl Filter for Vec<PacmanEvent> {
 
     fn without_removed<'a>(
         &'a self,
-        config: &'a Config,
+        filters: &'a Vec<String>,
     ) -> HashMap<&'a String, Vec<&'a PacmanEvent>> {
-        let groups = self.group_relevant(&config);
+        let groups = self.group_relevant(&filters);
         let mut without_removed = groups.clone();
         for (package, mut events) in groups {
             let latest_event = events.latest();
@@ -68,13 +69,17 @@ impl Filter for Vec<PacmanEvent> {
         config: &'a Config,
     ) -> HashMap<&'a String, Vec<&'a Self::Event>> {
         if config.removed_only {
-            self.without_installed(&config)
+            self.without_installed(&config.filters)
         } else if !config.with_removed {
-            self.without_removed(&config)
+            self.without_removed(&config.filters)
         } else {
-            self.group_relevant(&config)
+            self.group_relevant(&config.filters)
         }
     }
+}
+
+pub fn is_relevant_package(filters: &Vec<String>, package: &str) -> bool {
+    filters.is_empty() || filters.contains(&String::from(package))
 }
 
 #[cfg(test)]
@@ -176,18 +181,11 @@ mod tests {
     #[test]
     fn should_remove_installed() {
         // given
-        let config = Config {
-            removed_only: true,
-            with_removed: false,
-            filters: Vec::new(),
-            logfile: String::from("/not/relevant/here"),
-            format: Format::Plain,
-        };
-
         let pacman_events = some_pacman_events();
+        let filters = Vec::new();
 
         // when
-        let without_installed = pacman_events.without_installed(&config);
+        let without_installed = pacman_events.without_installed(&filters);
 
         // then
         assert_eq!(
@@ -207,18 +205,11 @@ mod tests {
     #[test]
     fn should_keep_installed() {
         // given
-        let config = Config {
-            removed_only: true,
-            with_removed: false,
-            filters: Vec::new(),
-            logfile: String::from("/not/relevant/here"),
-            format: Format::Plain,
-        };
-
         let pacman_events = some_pacman_events();
+        let filters = Vec::new();
 
         // when
-        let without_removed = pacman_events.without_removed(&config);
+        let without_removed = pacman_events.without_removed(&filters);
 
         // then
         assert_eq!(
@@ -233,5 +224,18 @@ mod tests {
             without_removed.contains_key(&String::from("no-longer-used")),
             false
         )
+    }
+
+    #[test]
+    fn should_be_relevant_when_filters_are_empty() {
+        let filters = Vec::new();
+        assert_eq!(is_relevant_package(&filters, "linux"), true)
+    }
+
+    #[test]
+    fn should_not_be_relevant_with_filters() {
+        let mut filters: Vec<String> = Vec::new();
+        filters.push(String::from("vim"));
+        assert_eq!(is_relevant_package(&filters, "linux"), false)
     }
 }
