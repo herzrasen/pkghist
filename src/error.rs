@@ -37,6 +37,17 @@ mod tests {
     use super::*;
 
     #[test]
+    fn should_set_the_error_message() {
+        let error = Error::new(ErrorDetail::FormattingError {
+            msg: String::from("This error is a test"),
+        });
+        assert_eq!(
+            error.to_string(),
+            "Error: FormattingError { msg: \"This error is a test\" }"
+        )
+    }
+
+    #[test]
     fn should_set_the_error_detail() {
         let error = Error::new(ErrorDetail::InvalidFormat);
         assert_eq!(error.detail, ErrorDetail::InvalidFormat)
