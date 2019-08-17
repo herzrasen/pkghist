@@ -63,9 +63,8 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
                 }),
         )
         .arg(
-            Arg::with_name("package")
-                .help("The package that should be searched for")
-                .default_value("all")
+            Arg::with_name("filter")
+                .help("Filter the packages that should be searched for.")
                 .multiple(true),
         );
     app.get_matches_from(argv)
@@ -168,7 +167,7 @@ mod tests {
             String::from("bash"),
             String::from("linux"),
         ]);
-        assert_eq!(matches.occurrences_of("package"), 2)
+        assert_eq!(matches.occurrences_of("filter"), 2)
     }
 
 }

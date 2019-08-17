@@ -8,3 +8,5 @@ edition = "2018"
 
 [dependencies]
 clap = "*"
+log = "*"
+fern = "*"
