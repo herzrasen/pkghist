@@ -109,6 +109,7 @@ pub fn from_file(path: &Path) -> std::io::Result<Vec<PacmanEvent>> {
 #[cfg(test)]
 mod tests {
     use std::fs;
+
     use std::io::Write;
     use std::path;
 
@@ -118,7 +119,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn should_order_pacman_events_by_version() {
+    fn should_order_pacman_events_by_date() {
         let p1: PacmanEvent = "[2019-07-16 21:07] [ALPM] installed nvidia (430.26)"
             .parse()
             .unwrap();
@@ -137,7 +138,7 @@ mod tests {
     }
 
     #[test]
-    fn should_order_pacman_events_by_version_and_package() {
+    fn should_order_pacman_events_by_date_and_package() {
         let p1: PacmanEvent =
             "[2019-05-23 07:00] [ALPM] installed intellij-idea-community-edition (2:2019.1.2-1)"
                 .parse()

@@ -40,12 +40,12 @@ pub struct Event {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct HistoryEntry {
+pub struct PackageHistory {
     pub p: String,
     pub e: Vec<Event>,
 }
 
-fn from_pacman_events(pacman_events: Vec<&PacmanEvent>) -> HistoryEntry {
+fn from_pacman_events(pacman_events: Vec<&PacmanEvent>) -> PackageHistory {
     let e: Vec<Event> = pacman_events
         .iter()
         .map(|e| Event {
@@ -55,10 +55,10 @@ fn from_pacman_events(pacman_events: Vec<&PacmanEvent>) -> HistoryEntry {
         })
         .collect();
     let p = pacman_events.first().unwrap().package.clone();
-    HistoryEntry { p, e }
+    PackageHistory { p, e }
 }
 
-fn format_json(packages_with_version: &Vec<HistoryEntry>) -> Result<String, Error> {
+fn format_json(packages_with_version: &Vec<PackageHistory>) -> Result<String, Error> {
     match serde_json::to_string_pretty(packages_with_version) {
         Ok(json) => Ok(json),
         Err(e) => Err(Error::new(ErrorDetail::FormattingError {
@@ -67,7 +67,7 @@ fn format_json(packages_with_version: &Vec<HistoryEntry>) -> Result<String, Erro
     }
 }
 
-fn format_plain(history_entries: &Vec<HistoryEntry>) -> Result<String, Error> {
+fn format_plain(history_entries: &Vec<PackageHistory>) -> Result<String, Error> {
     let mut plain = String::new();
     for history_entry in history_entries {
         plain.push_str(format!("{}\n", history_entry.p).as_str());
@@ -78,7 +78,7 @@ fn format_plain(history_entries: &Vec<HistoryEntry>) -> Result<String, Error> {
     Ok(plain)
 }
 
-pub trait PactraceFormatter {
+pub trait Formatter {
     fn format(&self, format: Format) -> Result<String, Error>;
 
     fn print(&self, format: Format) -> Result<(), Error> {
@@ -95,7 +95,7 @@ pub trait PactraceFormatter {
     }
 }
 
-impl PactraceFormatter for Vec<HistoryEntry> {
+impl Formatter for Vec<PackageHistory> {
     fn format(&self, format: Format) -> Result<String, Error> {
         match format {
             Format::Json => format_json(self),
