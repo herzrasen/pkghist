@@ -132,8 +132,6 @@ mod tests {
 
     use filepath::FilePath;
 
-    use crate::config::Format;
-
     use super::*;
 
     #[test]
@@ -146,14 +144,9 @@ mod tests {
         )
             .unwrap();
 
-        let config = Config {
-            with_removed: false,
-            removed_only: false,
-            logfile: file_name,
-            filters: Vec::new(),
-            format: Format::Plain { with_colors: true },
-            no_colors: false,
-        };
+        let mut config = Config::new();
+        config.logfile = file_name;
+
         let result = run(config);
         assert_eq!(result.is_ok(), true);
         fs::remove_file(file.path().unwrap()).unwrap()

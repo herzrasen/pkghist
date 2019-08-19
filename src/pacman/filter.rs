@@ -90,7 +90,6 @@ mod tests {
     use std::fs::File;
     use std::io::Write;
 
-    use crate::config::Format;
     use crate::pacman;
     use filepath::FilePath;
     use std::fs;
@@ -106,14 +105,8 @@ mod tests {
         )
             .unwrap();
 
-        let config = Config {
-            logfile: file_name.clone(),
-            with_removed: false,
-            removed_only: false,
-            filters: Vec::new(),
-            format: Format::Plain { with_colors: true },
-            no_colors: false,
-        };
+        let mut config = Config::new();
+        config.logfile = file_name.clone();
 
         let pacman_events = pacman::from_file(Path::new(&file_name))
             .unwrap_or_else(|_| panic!("Unable to open {}", &file_name));
@@ -137,14 +130,9 @@ mod tests {
         filters.push(String::from("bash"));
         filters.push(String::from("linux"));
 
-        let config = Config {
-            logfile: file_name.clone(),
-            with_removed: false,
-            removed_only: false,
-            filters,
-            format: Format::Plain { with_colors: true },
-            no_colors: false,
-        };
+        let mut config = Config::new();
+        config.logfile = file_name.clone();
+        config.filters = filters;
 
         let pacman_events = pacman::from_file(Path::new(&file_name))
             .unwrap_or_else(|_| panic!("Unable to open {}", &file_name));

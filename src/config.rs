@@ -32,10 +32,20 @@ pub struct Config {
     pub logfile: String,
     pub filters: Vec<String>,
     pub format: Format,
-    pub no_colors: bool,
+    pub depth: Option<u16>,
 }
 
 impl Config {
+    pub fn new() -> Config {
+        Config {
+            removed_only: false,
+            with_removed: false,
+            logfile: String::from("/var/log/pacman.log"),
+            format: Format::Plain { with_colors: true },
+            depth: None,
+            filters: Vec::new(),
+        }
+    }
     pub fn from_arg_matches(matches: &ArgMatches) -> Config {
         let filters = match matches.values_of("filter") {
             Some(packages) => packages.map(String::from).collect(),
@@ -52,13 +62,21 @@ impl Config {
         } else {
             Format::Json
         };
+
+        println!("depth = {:?}", matches.value_of("depth"));
+
+        let depth = match matches.value_of("depth") {
+            Some("all") => None,
+            Some(v) => Some(v.parse::<u16>().unwrap()),
+            None => None,
+        };
         Config {
             removed_only: matches.is_present("removed-only"),
             with_removed: matches.is_present("with-removed"),
             logfile: String::from(matches.value_of("logfile").unwrap()),
+            depth,
             filters,
             format,
-            no_colors: matches.is_present("no-colors"),
         }
     }
 }
@@ -115,7 +133,8 @@ mod tests {
         assert_eq!(config.filters.is_empty(), true);
         assert_eq!(config.with_removed, false);
         assert_eq!(config.removed_only, false);
-        assert_eq!(config.format, Format::Plain { with_colors: true })
+        assert_eq!(config.format, Format::Plain { with_colors: true });
+        assert_eq!(config.depth, None)
     }
 
     #[test]
@@ -146,14 +165,6 @@ mod tests {
     }
 
     #[test]
-    fn should_create_config_from_args_no_colors() {
-        let matches = parse_args(&[String::from("pkghist"), String::from("--no-colors")]);
-        let config = Config::from_arg_matches(&matches);
-        assert_eq!(config.no_colors, true);
-        assert_eq!(config.format, Format::Plain { with_colors: false })
-    }
-
-    #[test]
     fn should_create_config_from_args_format_json() {
         let matches = parse_args(&[
             String::from("pkghist"),
@@ -163,4 +174,27 @@ mod tests {
         let config = Config::from_arg_matches(&matches);
         assert_eq!(config.format, Format::Json)
     }
+
+    #[test]
+    fn should_create_config_from_args_depth_some() {
+        let matches = parse_args(&[
+            String::from("pkghist"),
+            String::from("--depth"),
+            String::from("3"),
+        ]);
+        let config = Config::from_arg_matches(&matches);
+        assert_eq!(config.depth, Some(3))
+    }
+
+    #[test]
+    fn should_create_config_from_args_depth_none() {
+        let matches = parse_args(&[
+            String::from("pkghist"),
+            String::from("--depth"),
+            String::from("all"),
+        ]);
+        let config = Config::from_arg_matches(&matches);
+        assert_eq!(config.depth, None)
+    }
+
 }
