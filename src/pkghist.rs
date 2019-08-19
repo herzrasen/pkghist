@@ -6,10 +6,13 @@ use serde_json;
 
 use crate::config::Config;
 use crate::config::Format;
-use crate::error::{Error, ErrorDetail};
+use crate::error::Error;
 use crate::pacman;
+use crate::pacman::action::Action;
 use crate::pacman::filter::Filter;
 use crate::pacman::PacmanEvent;
+use std::io::Write;
+use termion::color;
 
 pub fn run(config: Config) -> Result<(), Error> {
     let logfile_path = &config.logfile;
@@ -20,16 +23,18 @@ pub fn run(config: Config) -> Result<(), Error> {
 
     groups.iter().for_each(|g| log::debug!("{:?}", g));
 
-    let mut history_entries = Vec::new();
+    let mut package_histories = Vec::new();
 
     for (_, mut events) in groups {
         events.sort();
-        let history_entry = from_pacman_events(events);
-        history_entries.push(history_entry);
+        let package_history = from_pacman_events(events);
+        package_histories.push(package_history);
     }
-    history_entries.sort_by(|h1, h2| h1.p.cmp(&h2.p));
+    package_histories.sort_by(|h1, h2| h1.p.cmp(&h2.p));
 
-    history_entries.print(config.format)
+    config.format.print(&package_histories)?;
+
+    Ok(())
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -58,48 +63,63 @@ fn from_pacman_events(pacman_events: Vec<&PacmanEvent>) -> PackageHistory {
     PackageHistory { p, e }
 }
 
-fn format_json(packages_with_version: &Vec<PackageHistory>) -> Result<String, Error> {
-    match serde_json::to_string_pretty(packages_with_version) {
-        Ok(json) => Ok(json),
-        Err(e) => Err(Error::new(ErrorDetail::FormattingError {
-            msg: e.to_string(),
-        })),
-    }
+fn format_json(packages_with_version: &Vec<PackageHistory>) -> Result<(), Error> {
+    let json = serde_json::to_string_pretty(packages_with_version).unwrap();
+    writeln!(std::io::stdout(), "{}", json).unwrap();
+    Ok(())
 }
 
-fn format_plain(history_entries: &Vec<PackageHistory>) -> Result<String, Error> {
-    let mut plain = String::new();
-    for history_entry in history_entries {
-        plain.push_str(format!("{}\n", history_entry.p).as_str());
-        for event in &history_entry.e {
-            plain.push_str(format!("  [{}] {}\n    {}\n", event.d, event.a, event.v).as_str());
+fn format_plain(package_histories: &Vec<PackageHistory>, with_colors: bool) -> Result<(), Error> {
+    for package_history in package_histories {
+        if with_colors {
+            // check if last event is a removal
+            match package_history.e.last() {
+                Some(last_event) => {
+                    let last_action: Action = last_event.a.parse().unwrap();
+                    match last_action {
+                        Action::Removed => print!("{red}", red = color::Fg(color::Red)),
+                        _ => print!("{green}", green = color::Fg(color::Green)),
+                    }
+                }
+                None => (),
+            }
+            println!(
+                "{package}{reset}",
+                package = package_history.p,
+                reset = color::Fg(color::Reset)
+            )
+        } else {
+            println!("{}", package_history.p)
+        }
+        for event in &package_history.e {
+            if with_colors {
+                match event.a.parse().unwrap() {
+                    Action::Removed => print!("{red}", red = color::Fg(color::Red)),
+                    _ => (), // no coloring in the default case
+                };
+                println!(
+                    "  [{date}] {action}{reset}",
+                    date = event.d,
+                    action = event.a,
+                    reset = color::Fg(color::Reset)
+                )
+            } else {
+                println!("  [{date}] {action}", date = event.d, action = event.a,)
+            }
         }
     }
-    Ok(plain)
+    Ok(())
 }
 
-pub trait Formatter {
-    fn format(&self, format: Format) -> Result<String, Error>;
-
-    fn print(&self, format: Format) -> Result<(), Error> {
-        match self.format(format) {
-            Ok(format_str) => {
-                println!("{}", format_str);
-                Ok(())
-            }
-            Err(e) => {
-                eprintln!("Error formatting output: {:?}", e);
-                Err(e)
-            }
-        }
-    }
+trait Printer {
+    fn print(&self, package_histories: &Vec<PackageHistory>) -> Result<(), Error>;
 }
 
-impl Formatter for Vec<PackageHistory> {
-    fn format(&self, format: Format) -> Result<String, Error> {
-        match format {
-            Format::Json => format_json(self),
-            Format::Plain => format_plain(self),
+impl Printer for Format {
+    fn print(&self, package_histories: &Vec<PackageHistory>) -> Result<(), Error> {
+        match *self {
+            Format::Plain { with_colors } => format_plain(package_histories, with_colors),
+            Format::Json => format_json(package_histories),
         }
     }
 }
@@ -131,7 +151,8 @@ mod tests {
             removed_only: false,
             logfile: file_name,
             filters: Vec::new(),
-            format: Format::Plain,
+            format: Format::Plain { with_colors: true },
+            no_colors: false,
         };
         let result = run(config);
         assert_eq!(result.is_ok(), true);

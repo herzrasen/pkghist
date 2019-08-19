@@ -30,7 +30,7 @@ impl FromStr for Action {
     type Err = Error;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        match s {
+        match s.to_lowercase().as_str() {
             "upgraded" => Ok(Action::Upgraded),
             "installed" => Ok(Action::Installed),
             "reinstalled" => Ok(Action::Reinstalled),

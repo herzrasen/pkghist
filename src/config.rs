@@ -7,7 +7,7 @@ use crate::error::ErrorDetail;
 
 #[derive(Debug, PartialOrd, PartialEq)]
 pub enum Format {
-    Plain,
+    Plain { with_colors: bool },
     Json,
 }
 
@@ -19,7 +19,7 @@ impl FromStr for Format {
         if format_str == String::from("json") {
             Ok(Format::Json)
         } else if format_str == String::from("plain") {
-            Ok(Format::Plain)
+            Ok(Format::Plain { with_colors: true })
         } else {
             Err(Error::new(ErrorDetail::InvalidFormat))
         }
@@ -32,6 +32,7 @@ pub struct Config {
     pub logfile: String,
     pub filters: Vec<String>,
     pub format: Format,
+    pub no_colors: bool,
 }
 
 impl Config {
@@ -40,12 +41,24 @@ impl Config {
             Some(packages) => packages.map(String::from).collect(),
             None => Vec::new(),
         };
+        let format_from_matches: Format =
+            matches.value_of("output-format").unwrap().parse().unwrap();
+        let format = if format_from_matches == (Format::Plain { with_colors: true }) {
+            if matches.is_present("no-colors") {
+                Format::Plain { with_colors: false }
+            } else {
+                Format::Plain { with_colors: true }
+            }
+        } else {
+            Format::Json
+        };
         Config {
             removed_only: matches.is_present("removed-only"),
             with_removed: matches.is_present("with-removed"),
             logfile: String::from(matches.value_of("logfile").unwrap()),
             filters,
-            format: matches.value_of("output-format").unwrap().parse().unwrap(),
+            format,
+            no_colors: matches.is_present("no-colors"),
         }
     }
 }
@@ -60,14 +73,14 @@ mod tests {
     fn should_parse_format_plain() {
         let format: Result<Format, Error> = "plain".parse();
         assert!(format.is_ok());
-        assert_eq!(format.unwrap(), Format::Plain)
+        assert_eq!(format.unwrap(), Format::Plain { with_colors: true })
     }
 
     #[test]
     fn should_parse_format_plain_ignore_case() {
         let format: Result<Format, Error> = "PlAiN".parse();
         assert!(format.is_ok());
-        assert_eq!(format.unwrap(), Format::Plain)
+        assert_eq!(format.unwrap(), Format::Plain { with_colors: true })
     }
 
     #[test]
@@ -95,17 +108,18 @@ mod tests {
     }
 
     #[test]
-    fn should_create_config_from_args_1() {
+    fn should_create_config_from_args() {
         let matches = parse_args(&[String::from("pkghist")]);
         let config = Config::from_arg_matches(&matches);
         assert_eq!(config.logfile, "/var/log/pacman.log");
         assert_eq!(config.filters.is_empty(), true);
         assert_eq!(config.with_removed, false);
-        assert_eq!(config.removed_only, false)
+        assert_eq!(config.removed_only, false);
+        assert_eq!(config.format, Format::Plain { with_colors: true })
     }
 
     #[test]
-    fn should_create_config_from_args_2() {
+    fn should_create_config_from_args_removed_only() {
         let matches = parse_args(&[String::from("pkghist"), String::from("--removed-only")]);
         let config = Config::from_arg_matches(&matches);
         assert_eq!(config.logfile, "/var/log/pacman.log");
@@ -115,24 +129,38 @@ mod tests {
     }
 
     #[test]
-    fn should_create_config_from_args_3() {
+    fn should_create_config_from_args_with_removed() {
         let matches = parse_args(&[String::from("pkghist"), String::from("--with-removed")]);
         let config = Config::from_arg_matches(&matches);
-        assert_eq!(config.logfile, "/var/log/pacman.log");
         assert_eq!(config.filters.is_empty(), true);
         assert_eq!(config.with_removed, true);
         assert_eq!(config.removed_only, false)
     }
 
     #[test]
-    fn should_create_config_from_args_4() {
+    fn should_create_config_from_args_filters() {
         let matches = parse_args(&[String::from("pkghist"), String::from("linux")]);
         let config = Config::from_arg_matches(&matches);
-        assert_eq!(config.logfile, "/var/log/pacman.log");
         assert_eq!(config.filters.is_empty(), false);
         assert_eq!(config.filters.len(), 1);
-        assert_eq!(config.with_removed, false);
-        assert_eq!(config.removed_only, false)
     }
 
+    #[test]
+    fn should_create_config_from_args_no_colors() {
+        let matches = parse_args(&[String::from("pkghist"), String::from("--no-colors")]);
+        let config = Config::from_arg_matches(&matches);
+        assert_eq!(config.no_colors, true);
+        assert_eq!(config.format, Format::Plain { with_colors: false })
+    }
+
+    #[test]
+    fn should_create_config_from_args_format_json() {
+        let matches = parse_args(&[
+            String::from("pkghist"),
+            String::from("--output-format"),
+            String::from("json"),
+        ]);
+        let config = Config::from_arg_matches(&matches);
+        assert_eq!(config.format, Format::Json)
+    }
 }

@@ -111,7 +111,8 @@ mod tests {
             with_removed: false,
             removed_only: false,
             filters: Vec::new(),
-            format: Format::Plain,
+            format: Format::Plain { with_colors: true },
+            no_colors: false,
         };
 
         let pacman_events = pacman::from_file(Path::new(&file_name))
@@ -141,7 +142,8 @@ mod tests {
             with_removed: false,
             removed_only: false,
             filters,
-            format: Format::Plain,
+            format: Format::Plain { with_colors: true },
+            no_colors: false,
         };
 
         let pacman_events = pacman::from_file(Path::new(&file_name))

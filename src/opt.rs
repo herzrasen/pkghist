@@ -63,6 +63,12 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
                 }),
         )
         .arg(
+            Arg::with_name("no-colors")
+                .help("Disable colored output")
+                .long("no-colors")
+                .takes_value(false),
+        )
+        .arg(
             Arg::with_name("filter")
                 .help("Filter the packages that should be searched for.")
                 .multiple(true),

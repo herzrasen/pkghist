@@ -32,6 +32,14 @@ impl Error {
     }
 }
 
+impl From<std::fmt::Error> for Error {
+    fn from(error: std::fmt::Error) -> Self {
+        Error::new(ErrorDetail::FormattingError {
+            msg: error.to_string(),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
