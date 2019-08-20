@@ -68,6 +68,17 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
                 .takes_value(false),
         )
         .arg(
+            Arg::with_name("last")
+                .long("last")
+                .takes_value(true)
+                .conflicts_with("filter")
+                .help("Output the last 'n' pacman events")
+                .validator(|v| match v.parse::<u32>() {
+                    Ok(_) => Ok(()),
+                    Err(_) => Err(String::from("Please provide a positive number")),
+                }),
+        )
+        .arg(
             Arg::with_name("filter")
                 .help("Filter the packages that should be searched for")
                 .multiple(true),
@@ -102,7 +113,8 @@ pub struct Config {
     pub logfile: String,
     pub filters: Vec<String>,
     pub format: Format,
-    pub limit: Option<u16>,
+    pub limit: Option<u32>,
+    pub last: Option<u32>,
 }
 
 impl Config {
@@ -113,6 +125,7 @@ impl Config {
             logfile: String::from("/var/log/pacman.log"),
             format: Format::Plain { with_colors: true },
             limit: None,
+            last: None,
             filters: Vec::new(),
         }
     }
@@ -135,7 +148,12 @@ impl Config {
 
         let limit = match matches.value_of("limit") {
             Some("all") => None,
-            Some(v) => Some(v.parse::<u16>().unwrap()),
+            Some(v) => Some(v.parse::<u32>().unwrap()),
+            None => None,
+        };
+
+        let last = match matches.value_of("last") {
+            Some(v) => Some(v.parse::<u32>().unwrap()),
             None => None,
         };
         Config {
@@ -145,6 +163,7 @@ impl Config {
             limit,
             filters,
             format,
+            last,
         }
     }
 }
@@ -152,102 +171,6 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn should_parse_verbosity3() {
-        let matches = parse_args(&[String::from("pkghist"), String::from("-vvv")]);
-        assert_eq!(matches.occurrences_of("verbose"), 3)
-    }
-
-    #[test]
-    fn should_parse_default_logfile() {
-        let matches = parse_args(&[String::from("pkghist")]);
-        assert_eq!(matches.value_of("logfile"), Some("/var/log/pacman.log"))
-    }
-
-    #[test]
-    fn should_parse_provided_logfile_short() {
-        let matches = parse_args(&[
-            String::from("pkghist"),
-            String::from("-l"),
-            String::from("/my/very/special/pacman.log"),
-        ]);
-        assert_eq!(
-            matches.value_of("logfile"),
-            Some("/my/very/special/pacman.log")
-        )
-    }
-
-    #[test]
-    fn should_parse_provided_logfile_long() {
-        let matches = parse_args(&[
-            String::from("pkghist"),
-            String::from("--logfile"),
-            String::from("/my/very/special/pacman.log"),
-        ]);
-        assert_eq!(
-            matches.value_of("logfile"),
-            Some("/my/very/special/pacman.log")
-        )
-    }
-
-    #[test]
-    fn should_parse_with_removed() {
-        let matches = parse_args(&[String::from("pkghist"), String::from("-r")]);
-        assert_eq!(matches.is_present("with-removed"), true);
-        assert_eq!(matches.is_present("removed-only"), false)
-    }
-
-    #[test]
-    fn should_parse_with_installed_long() {
-        let matches = parse_args(&[String::from("pkghist"), String::from("--with-removed")]);
-        assert_eq!(matches.is_present("with-removed"), true);
-        assert_eq!(matches.is_present("removed-only"), false)
-    }
-
-    #[test]
-    fn should_parse_removed_only_short() {
-        let matches = parse_args(&[String::from("pkghist"), String::from("-R")]);
-        assert_eq!(matches.is_present("with-removed"), false);
-        assert_eq!(matches.is_present("removed-only"), true)
-    }
-
-    #[test]
-    fn should_parse_removed_only_long() {
-        let matches = parse_args(&[String::from("pkghist"), String::from("--removed-only")]);
-        assert_eq!(matches.is_present("with-removed"), false);
-        assert_eq!(matches.is_present("removed-only"), true)
-    }
-
-    #[test]
-    fn should_parse_limit_short() {
-        let matches = parse_args(&[
-            String::from("pkghist"),
-            String::from("-L"),
-            String::from("3"),
-        ]);
-        assert_eq!(matches.value_of("limit"), Some("3"))
-    }
-
-    #[test]
-    fn should_parse_depth_long() {
-        let matches = parse_args(&[
-            String::from("pkghist"),
-            String::from("--limit"),
-            String::from("3"),
-        ]);
-        assert_eq!(matches.value_of("limit"), Some("3"))
-    }
-
-    #[test]
-    fn should_parse_packages() {
-        let matches = parse_args(&[
-            String::from("pkghist"),
-            String::from("bash"),
-            String::from("linux"),
-        ]);
-        assert_eq!(matches.occurrences_of("filter"), 2)
-    }
 
     #[test]
     fn should_parse_format_plain() {
@@ -337,7 +260,7 @@ mod tests {
     }
 
     #[test]
-    fn should_create_config_from_args_depth_some() {
+    fn should_create_config_from_args_limit_some() {
         let matches = parse_args(&[
             String::from("pkghist"),
             String::from("--limit"),
@@ -348,10 +271,28 @@ mod tests {
     }
 
     #[test]
-    fn should_create_config_from_args_depth_none() {
+    fn should_create_config_from_args_limit_none() {
         let matches = parse_args(&[String::from("pkghist")]);
         let config = Config::from_arg_matches(&matches);
         assert_eq!(config.limit, None)
+    }
+
+    #[test]
+    fn should_create_config_from_args_last_some() {
+        let matches = parse_args(&[
+            String::from("pkghist"),
+            String::from("--last"),
+            String::from("50"),
+        ]);
+        let config = Config::from_arg_matches(&matches);
+        assert_eq!(config.last, Some(50))
+    }
+
+    #[test]
+    fn should_create_config_from_args_last_none() {
+        let matches = parse_args(&[String::from("pkghist")]);
+        let config = Config::from_arg_matches(&matches);
+        assert_eq!(config.last, None)
     }
 
 }

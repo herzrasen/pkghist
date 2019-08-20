@@ -45,6 +45,18 @@ mod tests {
     use super::*;
 
     #[test]
+    fn should_convert_the_error() {
+        let e = std::fmt::Error::default();
+        let error = Error::from(e);
+        assert_eq!(
+            error.detail,
+            ErrorDetail::FormattingError {
+                msg: String::from("an error occurred when formatting an argument")
+            }
+        )
+    }
+
+    #[test]
     fn should_set_the_error_message() {
         let error = Error::new(ErrorDetail::FormattingError {
             msg: String::from("This error is a test"),

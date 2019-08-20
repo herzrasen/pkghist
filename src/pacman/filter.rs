@@ -81,7 +81,7 @@ impl Filter for Vec<PacmanEvent> {
 
 fn limit_pacman_events<'a>(
     packages: &mut HashMap<&'a String, Vec<&'a PacmanEvent>>,
-    depth: Option<u16>,
+    depth: Option<u32>,
 ) -> HashMap<&'a String, Vec<&'a PacmanEvent>> {
     if let Some(d) = depth {
         let mut limited_packages = HashMap::new();
