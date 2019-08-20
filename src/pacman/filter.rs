@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::opt::Config;
 use crate::pacman::group::Group;
 use crate::pacman::latest::Latest;
 use crate::pacman::PacmanEvent;
@@ -68,13 +68,36 @@ impl Filter for Vec<PacmanEvent> {
         &'a self,
         config: &'a Config,
     ) -> HashMap<&'a String, Vec<&'a Self::Event>> {
-        if config.removed_only {
+        let mut packages = if config.removed_only {
             self.without_installed(&config.filters)
         } else if !config.with_removed {
             self.without_removed(&config.filters)
         } else {
             self.group_relevant(&config.filters)
+        };
+        limit_pacman_events(&mut packages, config.limit)
+    }
+}
+
+fn limit_pacman_events<'a>(
+    packages: &mut HashMap<&'a String, Vec<&'a PacmanEvent>>,
+    depth: Option<u16>,
+) -> HashMap<&'a String, Vec<&'a PacmanEvent>> {
+    if let Some(d) = depth {
+        let mut limited_packages = HashMap::new();
+        for (package, pacman_events) in packages {
+            let limited = pacman_events.iter().by_ref().rev().take(d as usize).fold(
+                Vec::new(),
+                |mut current, event| {
+                    current.push(*event);
+                    current
+                },
+            );
+            limited_packages.insert(*package, limited);
         }
+        limited_packages
+    } else {
+        packages.clone()
     }
 }
 

@@ -4,9 +4,9 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json;
 
-use crate::config::Config;
-use crate::config::Format;
 use crate::error::Error;
+use crate::opt::Config;
+use crate::opt::Format;
 use crate::pacman;
 use crate::pacman::action::Action;
 use crate::pacman::filter::Filter;

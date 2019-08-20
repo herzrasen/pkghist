@@ -1,7 +1,6 @@
 use crate::error::Error;
 use std::env;
 
-pub mod config;
 pub mod error;
 pub mod log;
 pub mod opt;
@@ -14,6 +13,6 @@ fn main() -> Result<(), Error> {
 
     log::setup_logging(matches.occurrences_of("verbose")).unwrap();
 
-    let config = config::Config::from_arg_matches(&matches);
+    let config = opt::Config::from_arg_matches(&matches);
     pkghist::run(config)
 }
