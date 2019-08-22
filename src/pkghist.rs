@@ -97,14 +97,15 @@ fn format_plain(package_histories: &Vec<PackageHistory>, with_colors: bool) -> R
                     Action::Removed => print!("{red}", red = color::Fg(color::Red)),
                     _ => (), // no coloring in the default case
                 };
+                println!("  [{date}] {action}", date = event.d, action = event.a,);
                 println!(
-                    "  [{date}] {action}{reset}",
-                    date = event.d,
-                    action = event.a,
+                    "    {version}{reset}",
+                    version = event.v,
                     reset = color::Fg(color::Reset)
                 )
             } else {
-                println!("  [{date}] {action}", date = event.d, action = event.a,)
+                println!("  [{date}] {action}", date = event.d, action = event.a);
+                println!("    {version}", version = event.v)
             }
         }
     }
