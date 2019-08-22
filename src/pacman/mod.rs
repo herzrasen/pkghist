@@ -60,18 +60,18 @@ impl FromStr for PacmanEvent {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if REGEX.is_match(s) {
-            let captures = REGEX.captures(s);
-            match captures {
-                Some(caps) => {
+            match REGEX.captures(s) {
+                Some(captures) => {
                     let date = NaiveDateTime::parse_from_str(
-                        caps.name("date").unwrap().as_str(),
+                        captures.name("date").unwrap().as_str(),
                         "%Y-%m-%d %H:%M",
                     )
                     .unwrap();
-                    let action = Action::from_str(caps.name("action").unwrap().as_str()).unwrap();
-                    let package = String::from(caps.name("package").unwrap().as_str());
-                    let from = String::from(caps.name("from").unwrap().as_str());
-                    let to = match caps.name("to") {
+                    let action =
+                        Action::from_str(captures.name("action").unwrap().as_str()).unwrap();
+                    let package = String::from(captures.name("package").unwrap().as_str());
+                    let from = String::from(captures.name("from").unwrap().as_str());
+                    let to = match captures.name("to") {
                         Some(to) => Some(String::from(to.as_str())),
                         None => None,
                     };

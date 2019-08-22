@@ -1,33 +1,23 @@
 use crate::opt::Config;
+use crate::pacman::action::Action;
 use crate::pacman::group::Group;
 use crate::pacman::latest::Latest;
 use crate::pacman::PacmanEvent;
+use itertools::Itertools;
 use std::collections::HashMap;
 
 pub trait Filter {
     type Event;
-    fn without_installed<'a>(
-        &'a self,
-        filters: &'a Vec<String>,
-    ) -> HashMap<&'a String, Vec<&'a Self::Event>>;
-    fn without_removed<'a>(
-        &'a self,
-        filters: &'a Vec<String>,
-    ) -> HashMap<&'a String, Vec<&'a Self::Event>>;
+    fn without_installed(&self, filters: &Vec<String>) -> HashMap<&String, Vec<&Self::Event>>;
+    fn without_removed(&self, filters: &Vec<String>) -> HashMap<&String, Vec<&Self::Event>>;
 
-    fn filter_packages<'a>(
-        &'a self,
-        config: &'a Config,
-    ) -> HashMap<&'a String, Vec<&'a Self::Event>>;
+    fn filter_packages(&self, config: &Config) -> HashMap<&String, Vec<&Self::Event>>;
 }
 
 impl Filter for Vec<PacmanEvent> {
     type Event = PacmanEvent;
 
-    fn without_installed<'a>(
-        &'a self,
-        filters: &'a Vec<String>,
-    ) -> HashMap<&'a String, Vec<&'a PacmanEvent>> {
+    fn without_installed(&self, filters: &Vec<String>) -> HashMap<&String, Vec<&PacmanEvent>> {
         let groups = self.group_relevant(&filters);
         let mut without_installed = groups.clone();
         for (package, mut events) in groups {
@@ -44,10 +34,7 @@ impl Filter for Vec<PacmanEvent> {
         without_installed
     }
 
-    fn without_removed<'a>(
-        &'a self,
-        filters: &'a Vec<String>,
-    ) -> HashMap<&'a String, Vec<&'a PacmanEvent>> {
+    fn without_removed(&self, filters: &Vec<String>) -> HashMap<&String, Vec<&PacmanEvent>> {
         let groups = self.group_relevant(&filters);
         let mut without_removed = groups.clone();
         for (package, mut events) in groups {
@@ -64,29 +51,61 @@ impl Filter for Vec<PacmanEvent> {
         without_removed
     }
 
-    fn filter_packages<'a>(
-        &'a self,
-        config: &'a Config,
-    ) -> HashMap<&'a String, Vec<&'a Self::Event>> {
-        let mut packages = if config.removed_only {
-            self.without_installed(&config.filters)
-        } else if !config.with_removed {
-            self.without_removed(&config.filters)
+    fn filter_packages(&self, config: &Config) -> HashMap<&String, Vec<&Self::Event>> {
+        let filters: Vec<String> = if config.last.is_some() {
+            get_filters_for_last_n_pacman_events(
+                config.last.unwrap(),
+                config.removed_only,
+                config.with_removed,
+                self,
+            )
         } else {
-            self.group_relevant(&config.filters)
+            config.filters.clone()
+        };
+        let mut packages = if config.removed_only {
+            self.without_installed(&filters)
+        } else if !config.with_removed {
+            self.without_removed(&filters)
+        } else {
+            self.group_relevant(&filters)
         };
         limit_pacman_events(&mut packages, config.limit)
     }
 }
 
+fn get_filters_for_last_n_pacman_events(
+    last_n: u32,
+    removed_only: bool,
+    with_removed: bool,
+    pacman_events: &Vec<PacmanEvent>,
+) -> Vec<String> {
+    let mut filters = Vec::new();
+    for pacman_event in pacman_events.iter().rev() {
+        match pacman_event.action {
+            Action::Removed if removed_only || with_removed => {
+                filters.push(pacman_event.package.clone())
+            }
+            Action::Removed => (), // removed but not interested in removed elements
+            _ if removed_only == false => filters.push(pacman_event.package.clone()),
+            _ => (),
+        }
+    }
+    filters
+        .iter()
+        .dedup()
+        .take(last_n as usize)
+        .map(|e| e.clone())
+        .collect()
+}
+
 fn limit_pacman_events<'a>(
     packages: &mut HashMap<&'a String, Vec<&'a PacmanEvent>>,
-    depth: Option<u32>,
+    limit: Option<u32>,
 ) -> HashMap<&'a String, Vec<&'a PacmanEvent>> {
-    if let Some(d) = depth {
+    if let Some(l) = limit {
         let mut limited_packages = HashMap::new();
         for (package, pacman_events) in packages {
-            let limited = pacman_events.iter().by_ref().rev().take(d as usize).fold(
+            let limited = pacman_events.iter().by_ref().rev().take(l as usize).fold(
                 Vec::new(),
                 |mut current, event| {
                     current.push(*event);
@@ -124,9 +143,18 @@ mod tests {
         let mut file = File::create(&file_name).unwrap();
         writeln!(
             file,
-            "[2019-06-23 21:09] [ALPM] upgraded linux (5.1.12.arch1-1 -> 5.1.14.arch1-1)\n[2019-06-26 12:48] [ALPM] upgraded linux (5.1.14.arch1-1 -> 5.1.15.arch1-1)\n[2019-07-08 01:01] [ALPM] upgraded linux-firmware (20190618.acb56f2-1 -> 20190628.70e4394-1)\n[2019-07-08 01:01] [ALPM] upgraded linux (5.1.15.arch1-1 -> 5.1.16.arch1-1)\n[2019-07-11 22:08] [ALPM] upgraded linux (5.1.16.arch1-1 -> 5.2.arch2-1)\n[2019-07-16 21:09] [ALPM] upgraded linux (5.2.arch2-1 -> 5.2.1.arch1-1)\n[2019-03-03 10:02] [ALPM] installed bash (5.0.0-1)\n[2019-03-16 12:57] [ALPM] upgraded bash (5.0.0-1 -> 5.0.002-1)\n[2019-04-14 21:51] [ALPM] upgraded bash (5.0.002-1 -> 5.0.003-1)\n[2019-05-10 12:45] [ALPM] upgraded bash (5.0.003-1 -> 5.0.007-1)"
+            "[2019-06-23 21:09] [ALPM] upgraded linux (5.1.12.arch1-1 -> 5.1.14.arch1-1)
+[2019-06-26 12:48] [ALPM] upgraded linux (5.1.14.arch1-1 -> 5.1.15.arch1-1)
+[2019-07-08 01:01] [ALPM] upgraded linux-firmware (20190618.acb56f2-1 -> 20190628.70e4394-1)
+[2019-07-08 01:01] [ALPM] upgraded linux (5.1.15.arch1-1 -> 5.1.16.arch1-1)
+[2019-07-11 22:08] [ALPM] upgraded linux (5.1.16.arch1-1 -> 5.2.arch2-1)
+[2019-07-16 21:09] [ALPM] upgraded linux (5.2.arch2-1 -> 5.2.1.arch1-1)
+[2019-03-03 10:02] [ALPM] installed bash (5.0.0-1)
+[2019-03-16 12:57] [ALPM] upgraded bash (5.0.0-1 -> 5.0.002-1)
+[2019-04-14 21:51] [ALPM] upgraded bash (5.0.002-1 -> 5.0.003-1)
+[2019-05-10 12:45] [ALPM] upgraded bash (5.0.003-1 -> 5.0.007-1)"
         )
-            .unwrap();
+        .unwrap();
 
         let mut config = Config::new();
         config.logfile = file_name.clone();
@@ -145,9 +173,18 @@ mod tests {
         let mut file = File::create(&file_name).unwrap();
         writeln!(
             file,
-            "[2019-06-23 21:09] [ALPM] upgraded linux (5.1.12.arch1-1 -> 5.1.14.arch1-1)\n[2019-06-26 12:48] [ALPM] upgraded linux (5.1.14.arch1-1 -> 5.1.15.arch1-1)\n[2019-07-08 01:01] [ALPM] upgraded linux-firmware (20190618.acb56f2-1 -> 20190628.70e4394-1)\n[2019-07-08 01:01] [ALPM] upgraded linux (5.1.15.arch1-1 -> 5.1.16.arch1-1)\n[2019-07-11 22:08] [ALPM] upgraded linux (5.1.16.arch1-1 -> 5.2.arch2-1)\n[2019-07-16 21:09] [ALPM] upgraded linux (5.2.arch2-1 -> 5.2.1.arch1-1)\n[2019-03-03 10:02] [ALPM] installed bash (5.0.0-1)\n[2019-03-16 12:57] [ALPM] upgraded bash (5.0.0-1 -> 5.0.002-1)\n[2019-04-14 21:51] [ALPM] upgraded bash (5.0.002-1 -> 5.0.003-1)\n[2019-05-10 12:45] [ALPM] upgraded bash (5.0.003-1 -> 5.0.007-1)"
+            "[2019-06-23 21:09] [ALPM] upgraded linux (5.1.12.arch1-1 -> 5.1.14.arch1-1)
+[2019-06-26 12:48] [ALPM] upgraded linux (5.1.14.arch1-1 -> 5.1.15.arch1-1)
+[2019-07-08 01:01] [ALPM] upgraded linux-firmware (20190618.acb56f2-1 -> 20190628.70e4394-1)
+[2019-07-08 01:01] [ALPM] upgraded linux (5.1.15.arch1-1 -> 5.1.16.arch1-1)
+[2019-07-11 22:08] [ALPM] upgraded linux (5.1.16.arch1-1 -> 5.2.arch2-1)
+[2019-07-16 21:09] [ALPM] upgraded linux (5.2.arch2-1 -> 5.2.1.arch1-1)
+[2019-03-03 10:02] [ALPM] installed bash (5.0.0-1)
+[2019-03-16 12:57] [ALPM] upgraded bash (5.0.0-1 -> 5.0.002-1)
+[2019-04-14 21:51] [ALPM] upgraded bash (5.0.002-1 -> 5.0.003-1)
+[2019-05-10 12:45] [ALPM] upgraded bash (5.0.003-1 -> 5.0.007-1)"
         )
-            .unwrap();
+        .unwrap();
 
         let mut filters: Vec<String> = Vec::new();
         filters.push(String::from("bash"));
@@ -182,6 +219,13 @@ mod tests {
             date: Utc::now().naive_local(),
         });
         pacman_events.push(PacmanEvent {
+            package: String::from("another-package"),
+            action: pacman::action::Action::Upgraded,
+            from: String::from("0.0.2"),
+            to: Some(String::from("0.0.3")),
+            date: Utc::now().naive_local(),
+        });
+        pacman_events.push(PacmanEvent {
             package: String::from("no-longer-used"),
             action: pacman::action::Action::Removed,
             from: String::from("0.0.1"),
@@ -189,6 +233,59 @@ mod tests {
             date: Utc::now().naive_local(),
         });
         pacman_events
+    }
+
+    #[test]
+    fn should_get_filters_for_last_n_events_without_removed() {
+        // given
+        let pacman_events = some_pacman_events();
+
+        // when
+        let filters = get_filters_for_last_n_pacman_events(2, false, false, &pacman_events);
+
+        // then
+        assert_eq!(filters.len(), 2);
+        assert_eq!(
+            filters,
+            [
+                String::from("another-package"),
+                String::from("some-package")
+            ]
+            .to_vec()
+        )
+    }
+
+    #[test]
+    fn should_get_filters_for_last_n_events_with_removed() {
+        // given
+        let pacman_events = some_pacman_events();
+
+        // when
+        let filters = get_filters_for_last_n_pacman_events(2, false, true, &pacman_events);
+
+        // then
+        assert_eq!(filters.len(), 2);
+        assert_eq!(
+            filters,
+            [
+                String::from("no-longer-used"),
+                String::from("another-package")
+            ]
+            .to_vec()
+        )
+    }
+
+    #[test]
+    fn should_get_filters_for_last_n_events_removed_only() {
+        // given
+        let pacman_events = some_pacman_events();
+
+        // when
+        let filters = get_filters_for_last_n_pacman_events(2, true, false, &pacman_events);
+
+        // then
+        assert_eq!(filters.len(), 1);
+        assert_eq!(filters, [String::from("no-longer-used"),].to_vec())
     }
 
     #[test]
@@ -250,5 +347,21 @@ mod tests {
         let mut filters: Vec<String> = Vec::new();
         filters.push(String::from("vim"));
         assert_eq!(is_relevant_package(&filters, "linux"), false)
+    }
+
+    #[test]
+    fn should_limit_pacman_events() {
+        // given
+        let pacman_events = some_pacman_events();
+        let filters = Vec::new();
+        let mut group = pacman_events.without_removed(&filters);
+
+        // when
+        let limited = limit_pacman_events(&mut group, Some(1));
+
+        // then
+        for (_, l) in limited {
+            assert_eq!(l.len(), 1)
+        }
     }
 }
