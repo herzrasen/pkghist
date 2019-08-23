@@ -15,5 +15,3 @@ lazy_static = "1"
 itertools = "0"
 uuid = { version = "0.7", features = ["v4"]}
 filepath = "0"
-log = "*"
-fern = "*"

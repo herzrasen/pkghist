@@ -10,13 +10,6 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
         .version(env!("CARGO_PKG_VERSION"))
         .about("Trace package versions from pacman's logfile")
         .arg(
-            Arg::with_name("verbose")
-                .short("v")
-                .long("verbose")
-                .multiple(true)
-                .help("Set the level of verbosity"),
-        )
-        .arg(
             Arg::with_name("output-format")
                 .short("o")
                 .long("output-format")

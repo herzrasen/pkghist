@@ -11,6 +11,7 @@ use crate::pacman;
 use crate::pacman::action::Action;
 use crate::pacman::filter::Filter;
 use crate::pacman::PacmanEvent;
+use itertools::Itertools;
 use std::io::Write;
 use termion::color;
 
@@ -21,23 +22,34 @@ pub fn run(config: Config) -> Result<(), Error> {
 
     let groups = pacman_events.filter_packages(&config);
 
-    groups.iter().for_each(|g| log::debug!("{:?}", g));
-
     let mut package_histories = Vec::new();
 
-    for (_, mut events) in groups {
+    let sorted: Vec<Vec<&PacmanEvent>> = groups
+        .iter()
+        .sorted_by(|(p1, e1), (p2, e2)| {
+            let d1 = e1.last().unwrap().date;
+            let d2 = e2.last().unwrap().date;
+            if d1 == d2 {
+                p1.cmp(p2)
+            } else {
+                d1.cmp(&d2)
+            }
+        })
+        .map(|(_, e)| e.clone())
+        .collect();
+
+    for mut events in sorted {
         events.sort();
         let package_history = from_pacman_events(events);
         package_histories.push(package_history);
     }
-    package_histories.sort_by(|h1, h2| h1.p.cmp(&h2.p));
 
     config.format.print(&package_histories)?;
 
     Ok(())
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Ord, Eq, PartialOrd, PartialEq)]
 pub struct Event {
     pub v: String,
     pub d: String,
@@ -141,9 +153,14 @@ mod tests {
         let mut file = File::create(&file_name).unwrap();
         writeln!(
             file,
-            "[2019-07-14 21:33] [PACMAN] synchronizing package lists\n[2019-07-14 21:33] [PACMAN] starting full system upgrade\n[2019-07-14 21:33] [ALPM] transaction started\n[2019-07-14 21:33] [ALPM] installed feh (3.1.3-1)\n[2019-07-14 21:33] [ALPM] upgraded libev (4.25-1 -> 4.27-1)\n[2019-07-14 21:33] [ALPM] upgraded iso-codes (4.2-1 -> 4.3-1)"
+            "[2019-07-14 21:33] [PACMAN] synchronizing package lists
+[2019-07-14 21:33] [PACMAN] starting full system upgrade
+[2019-07-14 21:33] [ALPM] transaction started
+[2019-07-14 21:33] [ALPM] installed feh (3.1.3-1)
+[2019-07-14 21:33] [ALPM] upgraded libev (4.25-1 -> 4.27-1)
+[2019-07-14 21:33] [ALPM] upgraded iso-codes (4.2-1 -> 4.3-1)"
         )
-            .unwrap();
+        .unwrap();
 
         let mut config = Config::new();
         config.logfile = file_name;

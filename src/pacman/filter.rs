@@ -22,12 +22,7 @@ impl Filter for Vec<PacmanEvent> {
         let mut without_installed = groups.clone();
         for (package, mut events) in groups {
             let latest_event = events.latest();
-            log::debug!("Latest parsed line for {} -> {:?}", package, latest_event);
             if latest_event.action.is_installed() {
-                log::info!(
-                    "Removing {} from result since it is currently installed",
-                    package
-                );
                 without_installed.remove(package);
             }
         }
@@ -39,12 +34,7 @@ impl Filter for Vec<PacmanEvent> {
         let mut without_removed = groups.clone();
         for (package, mut events) in groups {
             let latest_event = events.latest();
-            log::debug!("Latest parsed line for {} -> {:?}", package, latest_event);
             if latest_event.action.is_removed() {
-                log::info!(
-                    "Removing {} from result since it is currently not installed",
-                    package
-                );
                 without_removed.remove(package);
             }
         }
