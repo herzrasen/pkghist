@@ -12,6 +12,7 @@ use crate::pacman::action::Action;
 use crate::pacman::filter::Filter;
 use crate::pacman::PacmanEvent;
 use itertools::Itertools;
+use std::io::stdout;
 use std::io::Write;
 use termion::color;
 
@@ -44,9 +45,9 @@ pub fn run(config: Config) -> Result<(), Error> {
         package_histories.push(package_history);
     }
 
-    config.format.print(&package_histories)?;
-
-    Ok(())
+    match config.format.print(&package_histories) {
+        _ => Ok(()),
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Ord, Eq, PartialOrd, PartialEq)]
@@ -77,7 +78,7 @@ fn from_pacman_events(pacman_events: Vec<&PacmanEvent>) -> PackageHistory {
 
 fn format_json(packages_with_version: &Vec<PackageHistory>) -> Result<(), Error> {
     let json = serde_json::to_string_pretty(packages_with_version).unwrap();
-    writeln!(std::io::stdout(), "{}", json).unwrap();
+    writeln!(stdout(), "{}", json)?;
     Ok(())
 }
 
@@ -89,35 +90,47 @@ fn format_plain(package_histories: &Vec<PackageHistory>, with_colors: bool) -> R
                 Some(last_event) => {
                     let last_action: Action = last_event.a.parse().unwrap();
                     match last_action {
-                        Action::Removed => print!("{red}", red = color::Fg(color::Red)),
-                        _ => print!("{green}", green = color::Fg(color::Green)),
+                        Action::Removed => write!(stdout(), "{red}", red = color::Fg(color::Red))?,
+                        _ => write!(stdout(), "{green}", green = color::Fg(color::Green))?,
                     }
                 }
                 None => (),
             }
-            println!(
+            writeln!(
+                stdout(),
                 "{package}{reset}",
                 package = package_history.p,
                 reset = color::Fg(color::Reset)
-            )
+            )?
         } else {
-            println!("{}", package_history.p)
+            writeln!(stdout(), "{}", package_history.p)?
         }
         for event in &package_history.e {
             if with_colors {
                 match event.a.parse().unwrap() {
-                    Action::Removed => print!("{red}", red = color::Fg(color::Red)),
+                    Action::Removed => write!(stdout(), "{red}", red = color::Fg(color::Red))?,
                     _ => (), // no coloring in the default case
                 };
-                println!("  [{date}] {action}", date = event.d, action = event.a,);
-                println!(
+                writeln!(
+                    stdout(),
+                    "  [{date}] {action}",
+                    date = event.d,
+                    action = event.a,
+                )?;
+                writeln!(
+                    stdout(),
                     "    {version}{reset}",
                     version = event.v,
                     reset = color::Fg(color::Reset)
-                )
+                )?
             } else {
-                println!("  [{date}] {action}", date = event.d, action = event.a);
-                println!("    {version}", version = event.v)
+                writeln!(
+                    stdout(),
+                    "  [{date}] {action}",
+                    date = event.d,
+                    action = event.a
+                )?;
+                writeln!(stdout(), "    {version}", version = event.v)?
             }
         }
     }

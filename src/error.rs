@@ -2,6 +2,7 @@ use std::fmt;
 
 #[derive(Debug, PartialEq)]
 pub enum ErrorDetail {
+    IOError { msg: String },
     InvalidFormat,
     InvalidAction,
     FormattingError { msg: String },
@@ -40,18 +41,39 @@ impl From<std::fmt::Error> for Error {
     }
 }
 
+impl From<std::io::Error> for Error {
+    fn from(error: std::io::Error) -> Self {
+        Error::new(ErrorDetail::IOError {
+            msg: format!("{:?} -> {}", error.kind(), error.to_string()),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::ErrorKind;
 
     #[test]
-    fn should_convert_the_error() {
+    fn should_convert_the_fmt_error() {
         let e = std::fmt::Error::default();
         let error = Error::from(e);
         assert_eq!(
             error.detail,
             ErrorDetail::FormattingError {
                 msg: String::from("an error occurred when formatting an argument")
+            }
+        )
+    }
+
+    #[test]
+    fn should_convert_the_io_error() {
+        let e = std::io::Error::new(ErrorKind::BrokenPipe, "Pipe is broken");
+        let error = Error::from(e);
+        assert_eq!(
+            error.detail,
+            ErrorDetail::IOError {
+                msg: String::from("BrokenPipe -> Pipe is broken")
             }
         )
     }
@@ -86,4 +108,5 @@ mod tests {
         let str = format!("{:?}", error);
         assert_eq!(str, String::from("Error { detail: InvalidFormat }"))
     }
+
 }
