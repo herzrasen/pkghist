@@ -13,7 +13,6 @@ use crate::pacman::filter::Filter;
 use crate::pacman::PacmanEvent;
 use itertools::Itertools;
 use std::io::stdout;
-use std::io::Write;
 use termion::color;
 
 pub fn run(config: Config) -> Result<(), Error> {
@@ -45,7 +44,7 @@ pub fn run(config: Config) -> Result<(), Error> {
         package_histories.push(package_history);
     }
 
-    match config.format.print(&package_histories) {
+    match config.format.print(&mut stdout(), &package_histories) {
         _ => Ok(()),
     }
 }
@@ -76,13 +75,20 @@ fn from_pacman_events(pacman_events: Vec<&PacmanEvent>) -> PackageHistory {
     PackageHistory { p, e }
 }
 
-fn format_json(packages_with_version: &Vec<PackageHistory>) -> Result<(), Error> {
+fn format_json<W: std::io::Write>(
+    stdout: &mut W,
+    packages_with_version: &Vec<PackageHistory>,
+) -> Result<(), Error> {
     let json = serde_json::to_string_pretty(packages_with_version).unwrap();
-    writeln!(stdout(), "{}", json)?;
+    writeln!(stdout, "{}", json)?;
     Ok(())
 }
 
-fn format_plain(package_histories: &Vec<PackageHistory>, with_colors: bool) -> Result<(), Error> {
+fn format_plain<W: std::io::Write>(
+    stdout: &mut W,
+    package_histories: &Vec<PackageHistory>,
+    with_colors: bool,
+) -> Result<(), Error> {
     for package_history in package_histories {
         if with_colors {
             // check if last event is a removal
@@ -90,47 +96,47 @@ fn format_plain(package_histories: &Vec<PackageHistory>, with_colors: bool) -> R
                 Some(last_event) => {
                     let last_action: Action = last_event.a.parse().unwrap();
                     match last_action {
-                        Action::Removed => write!(stdout(), "{red}", red = color::Fg(color::Red))?,
-                        _ => write!(stdout(), "{green}", green = color::Fg(color::Green))?,
+                        Action::Removed => write!(stdout, "{red}", red = color::Fg(color::Red))?,
+                        _ => write!(stdout, "{green}", green = color::Fg(color::Green))?,
                     }
                 }
                 None => (),
             }
             writeln!(
-                stdout(),
+                stdout,
                 "{package}{reset}",
                 package = package_history.p,
                 reset = color::Fg(color::Reset)
             )?
         } else {
-            writeln!(stdout(), "{}", package_history.p)?
+            writeln!(stdout, "{}", package_history.p)?
         }
         for event in &package_history.e {
             if with_colors {
                 match event.a.parse().unwrap() {
-                    Action::Removed => write!(stdout(), "{red}", red = color::Fg(color::Red))?,
+                    Action::Removed => write!(stdout, "{red}", red = color::Fg(color::Red))?,
                     _ => (), // no coloring in the default case
                 };
                 writeln!(
-                    stdout(),
+                    stdout,
                     "  [{date}] {action}",
                     date = event.d,
                     action = event.a,
                 )?;
                 writeln!(
-                    stdout(),
+                    stdout,
                     "    {version}{reset}",
                     version = event.v,
                     reset = color::Fg(color::Reset)
                 )?
             } else {
                 writeln!(
-                    stdout(),
+                    stdout,
                     "  [{date}] {action}",
                     date = event.d,
                     action = event.a
                 )?;
-                writeln!(stdout(), "    {version}", version = event.v)?
+                writeln!(stdout, "    {version}", version = event.v)?
             }
         }
     }
@@ -138,14 +144,22 @@ fn format_plain(package_histories: &Vec<PackageHistory>, with_colors: bool) -> R
 }
 
 trait Printer {
-    fn print(&self, package_histories: &Vec<PackageHistory>) -> Result<(), Error>;
+    fn print<W: std::io::Write>(
+        &self,
+        stdout: &mut W,
+        package_histories: &Vec<PackageHistory>,
+    ) -> Result<(), Error>;
 }
 
 impl Printer for Format {
-    fn print(&self, package_histories: &Vec<PackageHistory>) -> Result<(), Error> {
+    fn print<W: std::io::Write>(
+        &self,
+        stdout: &mut W,
+        package_histories: &Vec<PackageHistory>,
+    ) -> Result<(), Error> {
         match *self {
-            Format::Plain { with_colors } => format_plain(package_histories, with_colors),
-            Format::Json => format_json(package_histories),
+            Format::Plain { with_colors } => format_plain(stdout, package_histories, with_colors),
+            Format::Json => format_json(stdout, package_histories),
         }
     }
 }
@@ -158,7 +172,48 @@ mod tests {
 
     use filepath::FilePath;
 
+    use Printer;
+
     use super::*;
+
+    #[test]
+    fn should_print_to_stdout_colored() {
+        let package_histories = vec![PackageHistory {
+            p: String::from("foo"),
+            e: vec![Event {
+                a: String::from("Installed"),
+                v: String::from("0.0.1"),
+                d: String::from("2019-08-26 12:00:00"),
+            }],
+        }];
+        let mut stdout = Vec::new();
+        Format::Plain { with_colors: true }
+            .print(&mut stdout, &package_histories)
+            .unwrap();
+        let str = String::from_utf8(stdout).unwrap();
+        assert_eq!(
+            str,
+            "\u{1b}[38;5;2mfoo\u{1b}[39m\n  [2019-08-26 12:00:00] Installed\n    0.0.1\u{1b}[39m\n"
+        )
+    }
+
+    #[test]
+    fn should_print_to_stdout_no_colors() {
+        let package_histories = vec![PackageHistory {
+            p: String::from("foo"),
+            e: vec![Event {
+                a: String::from("Installed"),
+                v: String::from("0.0.1"),
+                d: String::from("2019-08-26 12:00:00"),
+            }],
+        }];
+        let mut stdout = Vec::new();
+        Format::Plain { with_colors: false }
+            .print(&mut stdout, &package_histories)
+            .unwrap();
+        let str = String::from_utf8(stdout).unwrap();
+        assert_eq!(str, "foo\n  [2019-08-26 12:00:00] Installed\n    0.0.1\n")
+    }
 
     #[test]
     fn should_be_ok_1() {
