@@ -17,7 +17,7 @@ pub mod group;
 pub mod latest;
 
 lazy_static! {
-    static ref REGEX: Regex = Regex::new(r"^\[(?P<date>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2})\]\s\[.+\]\s(?P<action>upgraded|installed|removed)\s(?P<package>.+)\s\((?P<from>.+?)(\s->\s(?P<to>.+))?\)").unwrap();
+    static ref REGEX: Regex = Regex::new(r"^\[(?P<date>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2})\]\s\[.+\]\s(?P<action>upgraded|installed|removed|reinstalled)\s(?P<package>.+)\s\((?P<from>.+?)(\s->\s(?P<to>.+))?\)").unwrap();
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -191,7 +191,7 @@ mod tests {
     }
 
     #[test]
-    fn should_extract_a_pacman_event_with_from() {
+    fn should_extract_a_pacman_install_event() {
         let line: PacmanEvent = "[2019-06-26 10:47] [ALPM] installed ansible (2.8.1-1)"
             .parse()
             .unwrap();
@@ -201,6 +201,24 @@ mod tests {
                 NaiveTime::from_hms(10, 47, 0),
             ),
             action: Action::Installed,
+            package: String::from("ansible"),
+            from: String::from("2.8.1-1"),
+            to: None,
+        };
+        assert_eq!(line, exptected_pacman_event)
+    }
+
+    #[test]
+    fn should_extract_a_pacman_reinstall_event() {
+        let line: PacmanEvent = "[2019-06-26 10:47] [ALPM] reinstalled ansible (2.8.1-1)"
+            .parse()
+            .unwrap();
+        let exptected_pacman_event = PacmanEvent {
+            date: NaiveDateTime::new(
+                NaiveDate::from_ymd(2019, 6, 26),
+                NaiveTime::from_hms(10, 47, 0),
+            ),
+            action: Action::Reinstalled,
             package: String::from("ansible"),
             from: String::from("2.8.1-1"),
             to: None,
