@@ -90,9 +90,9 @@ impl FromStr for Format {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let format_str = s.to_lowercase();
-        if format_str == String::from("json") {
+        if format_str == "json" {
             Ok(Format::Json)
-        } else if format_str == String::from("plain") {
+        } else if format_str == "plain" {
             Ok(Format::Plain { with_colors: true })
         } else {
             Err(Error::new(ErrorDetail::InvalidFormat))
@@ -110,8 +110,8 @@ pub struct Config {
     pub last: Option<u32>,
 }
 
-impl Config {
-    pub fn new() -> Config {
+impl Default for Config {
+    fn default() -> Config {
         Config {
             removed_only: false,
             with_removed: false,
@@ -122,6 +122,13 @@ impl Config {
             filters: Vec::new(),
         }
     }
+}
+
+impl Config {
+    pub fn new() -> Config {
+        Default::default()
+    }
+
     pub fn from_arg_matches(matches: &ArgMatches) -> Config {
         let filters = match matches.values_of("filter") {
             Some(packages) => packages.map(String::from).collect(),

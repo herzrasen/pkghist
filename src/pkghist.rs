@@ -77,7 +77,7 @@ fn from_pacman_events(pacman_events: Vec<&PacmanEvent>) -> PackageHistory {
 
 fn format_json<W: std::io::Write>(
     stdout: &mut W,
-    packages_with_version: &Vec<PackageHistory>,
+    packages_with_version: &[PackageHistory],
 ) -> Result<(), Error> {
     let json = serde_json::to_string_pretty(packages_with_version).unwrap();
     writeln!(stdout, "{}", json)?;
@@ -86,21 +86,18 @@ fn format_json<W: std::io::Write>(
 
 fn format_plain<W: std::io::Write>(
     stdout: &mut W,
-    package_histories: &Vec<PackageHistory>,
+    package_histories: &[PackageHistory],
     with_colors: bool,
 ) -> Result<(), Error> {
     for package_history in package_histories {
         if with_colors {
             // check if last event is a removal
-            match package_history.e.last() {
-                Some(last_event) => {
-                    let last_action: Action = last_event.a.parse().unwrap();
-                    match last_action {
-                        Action::Removed => write!(stdout, "{red}", red = color::Fg(color::Red))?,
-                        _ => write!(stdout, "{green}", green = color::Fg(color::Green))?,
-                    }
+            if let Some(last_event) = package_history.e.last() {
+                let last_action: Action = last_event.a.parse().unwrap();
+                match last_action {
+                    Action::Removed => write!(stdout, "{red}", red = color::Fg(color::Red))?,
+                    _ => write!(stdout, "{green}", green = color::Fg(color::Green))?,
                 }
-                None => (),
             }
             writeln!(
                 stdout,
@@ -113,10 +110,9 @@ fn format_plain<W: std::io::Write>(
         }
         for event in &package_history.e {
             if with_colors {
-                match event.a.parse().unwrap() {
-                    Action::Removed => write!(stdout, "{red}", red = color::Fg(color::Red))?,
-                    _ => (), // no coloring in the default case
-                };
+                if let Action::Removed = event.a.parse().unwrap() {
+                    write!(stdout, "{red}", red = color::Fg(color::Red))?
+                }
                 writeln!(
                     stdout,
                     "  [{date}] {action}",
@@ -147,7 +143,7 @@ trait Printer {
     fn print<W: std::io::Write>(
         &self,
         stdout: &mut W,
-        package_histories: &Vec<PackageHistory>,
+        package_histories: &[PackageHistory],
     ) -> Result<(), Error>;
 }
 
@@ -155,7 +151,7 @@ impl Printer for Format {
     fn print<W: std::io::Write>(
         &self,
         stdout: &mut W,
-        package_histories: &Vec<PackageHistory>,
+        package_histories: &[PackageHistory],
     ) -> Result<(), Error> {
         match *self {
             Format::Plain { with_colors } => format_plain(stdout, package_histories, with_colors),

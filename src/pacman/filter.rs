@@ -77,7 +77,7 @@ fn last_n_pacman_events<'a>(
     match last_n {
         Some(n) => {
             let filters: Vec<&String> = grouped
-                .into_iter()
+                .iter()
                 .sorted_by(|(p1, e1), (p2, e2)| {
                     let d1 = e1.last().unwrap().date;
                     let d2 = e2.last().unwrap().date;
@@ -87,7 +87,7 @@ fn last_n_pacman_events<'a>(
                         d1.cmp(&d2)
                     }
                 })
-                .map(|(p, _)| p.clone())
+                .map(|(p, _)| *p)
                 .rev()
                 .unique()
                 .take(n as usize)
@@ -95,10 +95,10 @@ fn last_n_pacman_events<'a>(
             println!("filters: {:?}", filters);
             let mut filtered = HashMap::new();
             grouped
-                .into_iter()
+                .iter()
                 .filter(|(p, _)| filters.contains(*p))
                 .for_each(|(p, e)| {
-                    filtered.insert(p.clone(), e.clone());
+                    filtered.insert(*p, e.clone());
                 });
             filtered
         }
@@ -128,7 +128,7 @@ fn limit_pacman_events<'a>(
     }
 }
 
-pub fn is_relevant_package(filters: &Vec<String>, package: &str) -> bool {
+pub fn is_relevant_package(filters: &[String], package: &str) -> bool {
     filters.is_empty() || filters.contains(&String::from(package))
 }
 

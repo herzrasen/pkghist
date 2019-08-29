@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::pacman::PacmanEvent;
+use std::hash::BuildHasher;
 
 pub trait Latest {
     type Event;
@@ -17,8 +18,8 @@ impl Latest for Vec<&PacmanEvent> {
     }
 }
 
-pub fn select_latest<'a>(
-    groups: HashMap<&'a String, Vec<&'a PacmanEvent>>,
+pub fn select_latest<'a, S: BuildHasher>(
+    groups: HashMap<&'a String, Vec<&'a PacmanEvent>, S>,
 ) -> HashMap<&'a String, PacmanEvent> {
     let mut latest = HashMap::new();
     for (package, mut pacman_events) in groups {
