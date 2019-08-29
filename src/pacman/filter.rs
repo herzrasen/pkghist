@@ -43,7 +43,7 @@ impl Filter for Vec<PacmanEvent> {
     }
 
     fn filter_packages(&self, config: &Config) -> HashMap<&String, Vec<&Self::Event>> {
-        let mut packages = if config.removed_only {
+        let packages = if config.removed_only {
             self.without_installed()
         } else if !config.with_removed {
             self.without_removed()
@@ -51,13 +51,27 @@ impl Filter for Vec<PacmanEvent> {
             self.group()
         };
 
-        let mut last_n_packages = last_n_pacman_events(&mut packages, config.last);
-        limit_pacman_events(&mut last_n_packages, config.limit)
+        let filtered_packages = if !config.filters.is_empty() {
+            let mut filtered = HashMap::new();
+            for (package, events) in packages {
+                if config.filters.contains(package) {
+                    filtered.insert(package, events);
+                }
+            }
+            filtered
+        } else {
+            packages
+        };
+
+        limit_pacman_events(
+            &last_n_pacman_events(&filtered_packages, config.last),
+            config.limit,
+        )
     }
 }
 
 fn last_n_pacman_events<'a>(
-    grouped: &mut HashMap<&'a String, Vec<&'a PacmanEvent>>,
+    grouped: &HashMap<&'a String, Vec<&'a PacmanEvent>>,
     last_n: Option<u32>,
 ) -> HashMap<&'a String, Vec<&'a PacmanEvent>> {
     match last_n {
@@ -93,7 +107,7 @@ fn last_n_pacman_events<'a>(
 }
 
 fn limit_pacman_events<'a>(
-    packages: &mut HashMap<&'a String, Vec<&'a PacmanEvent>>,
+    packages: &HashMap<&'a String, Vec<&'a PacmanEvent>>,
     limit: Option<u32>,
 ) -> HashMap<&'a String, Vec<&'a PacmanEvent>> {
     if let Some(l) = limit {
@@ -192,6 +206,7 @@ mod tests {
             .unwrap_or_else(|_| panic!("Unable to open {}", &file_name));
 
         let groups = pacman_events.filter_packages(&config);
+        println!("{:?}", groups);
         assert_eq!(groups.keys().len(), 2);
         fs::remove_file(file.path().unwrap()).unwrap()
     }
@@ -244,68 +259,20 @@ mod tests {
         pacman_events
     }
 
-    //    #[test]
-    //    fn should_get_filters_for_last_n_events_without_removed() {
-    //        // given
-    //        let pacman_events = some_pacman_events();
-    //        let mut group = pacman_events.group();
-    //
-    //
-    //        // when
-    //        let filtered = last_n_pacman_events(&mut group, Some(2));
-    //
-    //        // then
-    //        assert_eq!(filtered.keys().len(), 2);
-    //        assert_eq!(
-    //            filtered.keys(),
-    //            [
-    //                String::from("another-package"),
-    //                String::from("some-package")
-    //            ]
-    //            .to_vec()
-    //        )
-    //    }
+    #[test]
+    fn should_get_last_n_packages() {
+        // given
+        let pacman_events = some_pacman_events();
+        let group = pacman_events.group();
 
-    //    #[test]
-    //    fn should_get_filters_for_last_n_events_with_removed() {
-    //        // given
-    //        let pacman_events = some_pacman_events();
-    //
-    //        // when
-    //        let filters = get_filters_for_last_n_pacman_events(3, false, true, &pacman_events);
-    //
-    //        // then
-    //        assert_eq!(filters.len(), 3);
-    //        assert_eq!(
-    //            filters,
-    //            [
-    //                String::from("no-longer-used"),
-    //                String::from("another-package"),
-    //                String::from("some-package"),
-    //            ]
-    //            .to_vec()
-    //        )
-    //    }
+        // when
+        let filtered = last_n_pacman_events(&group, Some(2));
 
-    //    #[test]
-    //    fn should_get_filters_for_last_n_events_removed_only() {
-    //        // given
-    //        let pacman_events = some_pacman_events();
-    //
-    //        // when
-    //        let filters = get_filters_for_last_n_pacman_events(2, true, false, &pacman_events);
-    //
-    //        // then
-    //        assert_eq!(filters.len(), 2);
-    //        assert_eq!(
-    //            filters,
-    //            [
-    //                String::from("no-longer-used"),
-    //                String::from("another-package")
-    //            ]
-    //            .to_vec()
-    //        )
-    //    }
+        // then
+        assert_eq!(filtered.keys().len(), 2);
+        assert!(filtered.get(&String::from("another-package")).is_some());
+        assert!(filtered.get(&String::from("no-longer-used")).is_some())
+    }
 
     #[test]
     fn should_remove_installed() {
