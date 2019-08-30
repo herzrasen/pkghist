@@ -3,42 +3,42 @@ use std::collections::HashMap;
 use crate::pacman::PacmanEvent;
 use std::hash::BuildHasher;
 
-pub trait Latest {
+pub trait Newest {
     type Event;
 
-    fn latest(&mut self) -> &Self::Event;
+    fn newest(&mut self) -> &Self::Event;
 }
 
-impl Latest for Vec<&PacmanEvent> {
+impl Newest for Vec<&PacmanEvent> {
     type Event = PacmanEvent;
 
-    fn latest(&mut self) -> &PacmanEvent {
+    fn newest(&mut self) -> &PacmanEvent {
         self.sort();
         self.last().unwrap()
     }
 }
 
-pub fn select_latest<'a, S: BuildHasher>(
+pub fn select_newest<'a, S: BuildHasher>(
     groups: HashMap<&'a String, Vec<&'a PacmanEvent>, S>,
 ) -> HashMap<&'a String, PacmanEvent> {
-    let mut latest = HashMap::new();
+    let mut newest = HashMap::new();
     for (package, mut pacman_events) in groups {
-        let latest_event = pacman_events.latest().clone();
-        latest.insert(package, latest_event);
+        let newest_event = pacman_events.newest().clone();
+        newest.insert(package, newest_event);
     }
-    latest
+    newest
 }
 
 #[cfg(test)]
 mod tests {
-    use Latest;
+    use Newest;
 
     use crate::pacman::PacmanEvent;
 
     use super::*;
 
     #[test]
-    fn should_select_latest() {
+    fn should_select_newest() {
         let p1: PacmanEvent = "[2019-05-23 07:00] [ALPM] installed intellij-idea (2:2019.1.2-1)"
             .parse()
             .unwrap();
@@ -56,12 +56,12 @@ mod tests {
                 .unwrap();
 
         let mut pacman_events = [&p4, &p2, &p1, &p3].to_vec();
-        let latest = pacman_events.latest();
+        let latest = pacman_events.newest();
         assert_eq!(latest, &p4)
     }
 
     #[test]
-    fn should_select_latest_for_each_package() {
+    fn should_select_newest_for_each_package() {
         let p1: PacmanEvent = "[2019-05-23 07:00] [ALPM] installed intellij-idea (2:2019.1.2-1)"
             .parse()
             .unwrap();
@@ -104,7 +104,7 @@ mod tests {
         let linux_events = [&p8, &p5, &p7, &p6].to_vec();
         groups.insert(&linux_package, linux_events);
 
-        let latest = select_latest(groups);
+        let latest = select_newest(groups);
         assert_eq!(latest.get(&intellij_package), Some(&p4));
         assert_eq!(latest.get(&linux_package), Some(&p8))
     }

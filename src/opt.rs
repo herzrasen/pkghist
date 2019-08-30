@@ -61,15 +61,20 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
                 .takes_value(false),
         )
         .arg(
+            Arg::with_name("first")
+                .long("first")
+                .takes_value(true)
+                .conflicts_with_all(&["filter", "last"])
+                .help("Output the first 'n' pacman events")
+                .validator(validate_number),
+        )
+        .arg(
             Arg::with_name("last")
                 .long("last")
                 .takes_value(true)
                 .conflicts_with("filter")
                 .help("Output the last 'n' pacman events")
-                .validator(|v| match v.parse::<u32>() {
-                    Ok(_) => Ok(()),
-                    Err(_) => Err(String::from("Please provide a positive number")),
-                }),
+                .validator(validate_number),
         )
         .arg(
             Arg::with_name("filter")
@@ -77,6 +82,13 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
                 .multiple(true),
         );
     app.get_matches_from(argv)
+}
+
+fn validate_number(str: String) -> Result<(), String> {
+    match str.parse::<u32>() {
+        Ok(_) => Ok(()),
+        Err(_) => Err(String::from("Please provide a positive number")),
+    }
 }
 
 #[derive(Debug, PartialOrd, PartialEq)]
@@ -100,6 +112,22 @@ impl FromStr for Format {
     }
 }
 
+#[derive(Debug, PartialOrd, PartialEq)]
+pub enum Direction {
+    Forwards { n: usize },
+    Backwards { n: usize },
+}
+
+impl Direction {
+    fn from_first(n: u32) -> Direction {
+        Direction::Forwards { n: n as usize }
+    }
+
+    fn from_last(n: u32) -> Direction {
+        Direction::Backwards { n: n as usize }
+    }
+}
+
 pub struct Config {
     pub removed_only: bool,
     pub with_removed: bool,
@@ -107,7 +135,7 @@ pub struct Config {
     pub filters: Vec<String>,
     pub format: Format,
     pub limit: Option<u32>,
-    pub last: Option<u32>,
+    pub direction: Option<Direction>,
 }
 
 impl Default for Config {
@@ -118,7 +146,7 @@ impl Default for Config {
             logfile: String::from("/var/log/pacman.log"),
             format: Format::Plain { with_colors: true },
             limit: None,
-            last: None,
+            direction: None,
             filters: Vec::new(),
         }
     }
@@ -152,10 +180,18 @@ impl Config {
             None => None,
         };
 
-        let last = match matches.value_of("last") {
-            Some(v) => Some(v.parse::<u32>().unwrap()),
-            None => None,
+        let direction = if matches.is_present("first") {
+            Some(Direction::from_first(
+                matches.value_of("first").unwrap().parse().unwrap(),
+            ))
+        } else if matches.is_present("last") {
+            Some(Direction::from_last(
+                matches.value_of("last").unwrap().parse().unwrap(),
+            ))
+        } else {
+            None
         };
+
         Config {
             removed_only: matches.is_present("removed-only"),
             with_removed: matches.is_present("with-removed"),
@@ -163,7 +199,7 @@ impl Config {
             limit,
             filters,
             format,
-            last,
+            direction,
         }
     }
 }
@@ -171,6 +207,18 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn should_validate_number() {
+        let r = validate_number(String::from("123"));
+        assert_eq!(r.is_ok(), true)
+    }
+
+    #[test]
+    fn should_not_validate_number() {
+        let r = validate_number(String::from("notanumber"));
+        assert_eq!(r.is_err(), true)
+    }
 
     #[test]
     fn should_parse_format_plain() {
@@ -278,6 +326,24 @@ mod tests {
     }
 
     #[test]
+    fn should_create_config_from_args_first_some() {
+        let matches = parse_args(&[
+            String::from("pkghist"),
+            String::from("--first"),
+            String::from("50"),
+        ]);
+        let config = Config::from_arg_matches(&matches);
+        assert_eq!(config.direction, Some(Direction::Forwards { n: 50 }))
+    }
+
+    #[test]
+    fn should_create_config_from_args_first_none() {
+        let matches = parse_args(&[String::from("pkghist")]);
+        let config = Config::from_arg_matches(&matches);
+        assert_eq!(config.direction, None)
+    }
+
+    #[test]
     fn should_create_config_from_args_last_some() {
         let matches = parse_args(&[
             String::from("pkghist"),
@@ -285,14 +351,7 @@ mod tests {
             String::from("50"),
         ]);
         let config = Config::from_arg_matches(&matches);
-        assert_eq!(config.last, Some(50))
-    }
-
-    #[test]
-    fn should_create_config_from_args_last_none() {
-        let matches = parse_args(&[String::from("pkghist")]);
-        let config = Config::from_arg_matches(&matches);
-        assert_eq!(config.last, None)
+        assert_eq!(config.direction, Some(Direction::Backwards { n: 50 }))
     }
 
 }

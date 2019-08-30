@@ -1,8 +1,8 @@
 use crate::opt::Config;
 use crate::pacman::group::Group;
-use crate::pacman::latest::Latest;
+use crate::pacman::newest::Newest;
+use crate::pacman::range;
 use crate::pacman::PacmanEvent;
-use itertools::Itertools;
 use std::collections::HashMap;
 
 pub trait Filter {
@@ -22,7 +22,7 @@ impl Filter for Vec<PacmanEvent> {
         let groups = self.group();
         let mut without_installed = groups.clone();
         for (package, mut events) in groups {
-            let latest_event = events.latest();
+            let latest_event = events.newest();
             if latest_event.action.is_installed() {
                 without_installed.remove(package);
             }
@@ -34,7 +34,7 @@ impl Filter for Vec<PacmanEvent> {
         let groups = self.group();
         let mut without_removed = groups.clone();
         for (package, mut events) in groups {
-            let latest_event = events.latest();
+            let latest_event = events.newest();
             if latest_event.action.is_removed() {
                 without_removed.remove(package);
             }
@@ -64,45 +64,9 @@ impl Filter for Vec<PacmanEvent> {
         };
 
         limit_pacman_events(
-            &last_n_pacman_events(&filtered_packages, config.last),
+            &range::range(&filtered_packages, &config.direction),
             config.limit,
         )
-    }
-}
-
-fn last_n_pacman_events<'a>(
-    grouped: &HashMap<&'a String, Vec<&'a PacmanEvent>>,
-    last_n: Option<u32>,
-) -> HashMap<&'a String, Vec<&'a PacmanEvent>> {
-    match last_n {
-        Some(n) => {
-            let filters: Vec<&String> = grouped
-                .iter()
-                .sorted_by(|(p1, e1), (p2, e2)| {
-                    let d1 = e1.last().unwrap().date;
-                    let d2 = e2.last().unwrap().date;
-                    if d1 == d2 {
-                        p1.cmp(p2)
-                    } else {
-                        d1.cmp(&d2)
-                    }
-                })
-                .map(|(p, _)| *p)
-                .rev()
-                .unique()
-                .take(n as usize)
-                .collect();
-            println!("filters: {:?}", filters);
-            let mut filtered = HashMap::new();
-            grouped
-                .iter()
-                .filter(|(p, _)| filters.contains(*p))
-                .for_each(|(p, e)| {
-                    filtered.insert(*p, e.clone());
-                });
-            filtered
-        }
-        None => grouped.clone(),
     }
 }
 
@@ -257,21 +221,6 @@ mod tests {
             date: Utc::now().naive_local(),
         });
         pacman_events
-    }
-
-    #[test]
-    fn should_get_last_n_packages() {
-        // given
-        let pacman_events = some_pacman_events();
-        let group = pacman_events.group();
-
-        // when
-        let filtered = last_n_pacman_events(&group, Some(2));
-
-        // then
-        assert_eq!(filtered.keys().len(), 2);
-        assert!(filtered.get(&String::from("another-package")).is_some());
-        assert!(filtered.get(&String::from("no-longer-used")).is_some())
     }
 
     #[test]

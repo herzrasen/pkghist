@@ -14,7 +14,8 @@ use crate::pacman::action::Action;
 pub mod action;
 pub mod filter;
 pub mod group;
-pub mod latest;
+pub mod newest;
+pub mod range;
 
 lazy_static! {
     static ref REGEX: Regex = Regex::new(r"^\[(?P<date>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2})\]\s\[.+\]\s(?P<action>upgraded|installed|removed|reinstalled)\s(?P<package>.+)\s\((?P<from>.+?)(\s->\s(?P<to>.+))?\)").unwrap();
