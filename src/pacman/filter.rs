@@ -175,6 +175,76 @@ mod tests {
         fs::remove_file(file.path().unwrap()).unwrap()
     }
 
+    #[test]
+    fn should_filter_installed() {
+        let file_name = uuid::Uuid::new_v4().to_string();
+        let mut file = File::create(&file_name).unwrap();
+        writeln!(
+            file,
+            "[2019-06-23 21:09] [ALPM] upgraded linux (5.1.12.arch1-1 -> 5.1.14.arch1-1)
+[2019-06-26 12:48] [ALPM] upgraded linux (5.1.14.arch1-1 -> 5.1.15.arch1-1)
+[2019-07-08 01:01] [ALPM] upgraded linux-firmware (20190618.acb56f2-1 -> 20190628.70e4394-1)
+[2019-07-08 01:01] [ALPM] upgraded linux (5.1.15.arch1-1 -> 5.1.16.arch1-1)
+[2019-07-11 22:08] [ALPM] upgraded linux (5.1.16.arch1-1 -> 5.2.arch2-1)
+[2019-07-16 21:09] [ALPM] upgraded linux (5.2.arch2-1 -> 5.2.1.arch1-1)
+[2019-03-03 10:02] [ALPM] installed bash (5.0.0-1)
+[2019-03-16 12:57] [ALPM] upgraded bash (5.0.0-1 -> 5.0.002-1)
+[2019-04-14 21:51] [ALPM] upgraded bash (5.0.002-1 -> 5.0.003-1)
+[2019-05-10 12:45] [ALPM] removed bash (5.0.003-1)"
+        )
+        .unwrap();
+
+        let mut filters: Vec<String> = Vec::new();
+        filters.push(String::from("bash"));
+        filters.push(String::from("linux"));
+
+        let mut config = Config::new();
+        config.logfile = file_name.clone();
+        config.filters = filters;
+        config.removed_only = true;
+
+        let pacman_events = pacman::from_file(Path::new(&file_name))
+            .unwrap_or_else(|_| panic!("Unable to open {}", &file_name));
+
+        let groups = pacman_events.filter_packages(&config);
+        println!("{:?}", groups);
+        assert_eq!(groups.keys().len(), 1);
+        fs::remove_file(file.path().unwrap()).unwrap()
+    }
+
+    #[test]
+    fn should_keep_removed_and_installed() {
+        let file_name = uuid::Uuid::new_v4().to_string();
+        let mut file = File::create(&file_name).unwrap();
+        writeln!(
+            file,
+            "[2019-06-23 21:09] [ALPM] upgraded linux (5.1.12.arch1-1 -> 5.1.14.arch1-1)
+[2019-06-26 12:48] [ALPM] upgraded linux (5.1.14.arch1-1 -> 5.1.15.arch1-1)
+[2019-07-08 01:01] [ALPM] upgraded linux-firmware (20190618.acb56f2-1 -> 20190628.70e4394-1)
+[2019-07-08 01:01] [ALPM] upgraded linux (5.1.15.arch1-1 -> 5.1.16.arch1-1)
+[2019-07-11 22:08] [ALPM] upgraded linux (5.1.16.arch1-1 -> 5.2.arch2-1)
+[2019-07-16 21:09] [ALPM] upgraded linux (5.2.arch2-1 -> 5.2.1.arch1-1)
+[2019-03-03 10:02] [ALPM] installed bash (5.0.0-1)
+[2019-03-16 12:57] [ALPM] upgraded bash (5.0.0-1 -> 5.0.002-1)
+[2019-04-14 21:51] [ALPM] upgraded bash (5.0.002-1 -> 5.0.003-1)
+[2019-05-10 12:45] [ALPM] removed bash (5.0.003-1)"
+        )
+        .unwrap();
+
+        let mut config = Config::new();
+        config.logfile = file_name.clone();
+        config.filters = Vec::new();
+        config.with_removed = true;
+
+        let pacman_events = pacman::from_file(Path::new(&file_name))
+            .unwrap_or_else(|_| panic!("Unable to open {}", &file_name));
+
+        let groups = pacman_events.filter_packages(&config);
+        println!("{:?}", groups);
+        assert_eq!(groups.keys().len(), 3);
+        fs::remove_file(file.path().unwrap()).unwrap()
+    }
+
     fn some_pacman_events() -> Vec<PacmanEvent> {
         let mut pacman_events = Vec::new();
         pacman_events.push(PacmanEvent {
