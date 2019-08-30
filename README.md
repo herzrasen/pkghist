@@ -33,78 +33,72 @@ FLAGS:
         --no-colors       Disable colored output
     -R, --removed-only    Only output packages that are currently uninstalled
     -V, --version         Prints version information
-    -v, --verbose         Set the level of verbosity
     -r, --with-removed    Include packages that are currently uninstalled
 
 OPTIONS:
-    -d, --depth <depth>                    How many versions to go back in report [default: all]
+        --first <n>                        Output the first 'n' pacman events
+        --last <n>                         Output the last 'n' pacman events
+    -L, --limit <limit>                    How many versions to go back in report
     -l, --logfile <FILE>                   Specify a logfile [default: /var/log/pacman.log]
     -o, --output-format <output-format>    Select the output format [default: plain]  [possible values: json, plain]
 
 ARGS:
     <filter>...    Filter the packages that should be searched for
-
 ```
 
 ## Usage
-### List all installed packages in alphabetical order (with information about updates)
+### List all installed packages in ordered by install/upgrade date
 ```
 pkghist 
 ```
 
 This will output a (possibly large) list of installed packages and their update history:
 ```
-accountsservice
-  [2019-03-03 13:06:00] Installed
-  [2019-03-14 20:44:00] Upgraded
-  [2019-03-26 21:49:00] Removed
-  [2019-04-23 22:53:00] Installed
-  [2019-04-26 22:26:00] Upgraded
 acl
   [2019-03-03 10:02:00] Installed
-acpi_call
-  [2019-03-03 11:36:00] Installed
-  [2019-03-05 21:22:00] Upgraded
-  [2019-03-13 22:38:00] Upgraded
-  [2019-03-15 14:37:00] Upgraded
-  [2019-03-21 22:58:00] Upgraded
-  [2019-03-24 22:35:00] Upgraded
-  [2019-03-30 22:09:00] Upgraded
-  [2019-04-05 23:13:00] Upgraded
-  [2019-04-08 22:31:00] Upgraded
-  [2019-04-21 01:00:00] Upgraded
-  [2019-04-23 06:57:00] Upgraded
-  [2019-04-30 11:41:00] Upgraded
-  [2019-05-04 14:32:00] Upgraded
-  [2019-05-05 20:58:00] Upgraded
-  [2019-05-06 14:08:00] Upgraded
-  [2019-05-15 21:16:00] Upgraded
-  [2019-05-20 11:27:00] Upgraded
-  [2019-05-22 14:55:00] Upgraded
-  [2019-05-23 06:58:00] Upgraded
-  [2019-05-28 15:36:00] Upgraded
-  [2019-06-03 11:48:00] Upgraded
-  [2019-06-05 22:02:00] Upgraded
-  [2019-06-10 22:18:00] Upgraded
-  [2019-06-13 12:45:00] Upgraded
-  [2019-06-19 06:33:00] Upgraded
-  [2019-06-20 23:15:00] Upgraded
-  [2019-06-23 21:09:00] Upgraded
-  [2019-06-26 12:48:00] Upgraded
-  [2019-07-08 01:01:00] Upgraded
-  [2019-07-11 22:08:00] Upgraded
-  [2019-07-16 21:09:00] Upgraded
-  [2019-07-25 01:16:00] Upgraded
-  [2019-07-27 00:13:00] Upgraded
-  [2019-07-30 21:44:00] Upgraded
-  [2019-08-01 22:08:00] Upgraded
-  [2019-08-06 21:24:00] Upgraded
-  [2019-08-09 22:27:00] Upgraded
-  [2019-08-12 07:12:00] Upgraded
-  [2019-08-17 21:58:00] Upgraded
-adapta-gtk-theme
-  [2019-03-03 13:50:00] Installed
-adobe-source-code-pro-fonts
-  [2019-03-16 21:35:00] Installed
+    2.2.53-1
+attr
+  [2019-03-03 10:02:00] Installed
+    2.4.48-1
+autoconf
+  [2019-03-03 10:02:00] Installed
+    2.69-5
+automake
+  [2019-03-03 10:02:00] Installed
+    1.16.1-1
+ca-certificates
+  [2019-03-03 10:02:00] Installed
+    20181109-1
 ...
+```
+
+### List the last `n` installed / upgraded packages
+```
+pkghist --last <n>
+```
+
+#### Example
+```
+pkghist --last 2
+```
+
+This returns the most recently installed / upgraded packages:
+
+```bash
+diff-so-fancy
+  [2019-08-27 06:55:00] Installed
+    1.2.6-1
+  [2019-08-30 21:46:00] Upgraded
+    1.2.7-1
+electron4
+  [2019-06-29 22:33:00] Installed
+    4.2.5-1
+  [2019-07-02 22:44:00] Upgraded
+    4.2.6-1
+  [2019-07-20 21:42:00] Upgraded
+    4.2.8-1
+  [2019-08-12 07:12:00] Upgraded
+    4.2.8-2
+  [2019-08-30 21:46:00] Upgraded
+    4.2.10-1
 ```

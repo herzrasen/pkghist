@@ -63,6 +63,7 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
         .arg(
             Arg::with_name("first")
                 .long("first")
+                .value_name("n")
                 .takes_value(true)
                 .conflicts_with_all(&["filter", "last"])
                 .help("Output the first 'n' pacman events")
@@ -71,6 +72,7 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
         .arg(
             Arg::with_name("last")
                 .long("last")
+                .value_name("n")
                 .takes_value(true)
                 .conflicts_with("filter")
                 .help("Output the last 'n' pacman events")
