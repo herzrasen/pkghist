@@ -102,3 +102,39 @@ electron4
   [2019-08-30 21:46:00] Upgraded
     4.2.10-1
 ```
+
+### Limit the number of versions per package
+```
+pkghist --limit <n>
+```
+
+#### Example
+```
+pkghist --limit 2
+```
+
+```bash
+acl
+  [2019-03-03 10:02:00] Installed
+    2.2.53-1
+argon2
+  [2019-03-03 10:02:00] Installed
+    20171227-3
+  [2019-07-04 23:00:00] Upgraded
+    20190702-1
+attr
+  [2019-03-03 10:02:00] Installed
+    2.4.48-1
+autoconf
+  [2019-03-03 10:02:00] Installed
+    2.69-5
+automake
+  [2019-03-03 10:02:00] Installed
+    1.16.1-1
+ca-certificates
+  [2019-03-03 10:02:00] Installed
+    20181109-1
+...
+```
+
+This can be combined with `--last` and `--first`.
