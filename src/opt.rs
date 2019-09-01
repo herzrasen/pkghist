@@ -3,6 +3,7 @@ use std::str::FromStr;
 use crate::error::Error;
 use crate::error::ErrorDetail;
 
+use chrono::NaiveDateTime;
 use clap::{App, Arg, ArgMatches};
 
 pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
@@ -79,6 +80,17 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
                 .validator(validate_number),
         )
         .arg(
+            Arg::with_name("after")
+                .long("after")
+                .short("a")
+                .value_name("date")
+                .help(
+                    "Only consider events that occurred after 'date' [Format: \"YYYY-MM-DD HH:MM\"]",
+                )
+                .validator(validate_date)
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("filter")
                 .help("Filter the packages that should be searched for")
                 .multiple(true),
@@ -90,6 +102,15 @@ fn validate_number(str: String) -> Result<(), String> {
     match str.parse::<u32>() {
         Ok(_) => Ok(()),
         Err(_) => Err(String::from("Please provide a positive number")),
+    }
+}
+
+fn validate_date(str: String) -> Result<(), String> {
+    match NaiveDateTime::parse_from_str(str.as_str(), "%Y-%m-%d %H:%M") {
+        Ok(_) => Ok(()),
+        Err(_) => Err(String::from(
+            "Please provide a date in the format \"YYYY-MM-DD HH:MM\"",
+        )),
     }
 }
 
@@ -138,6 +159,7 @@ pub struct Config {
     pub format: Format,
     pub limit: Option<u32>,
     pub direction: Option<Direction>,
+    pub after: Option<NaiveDateTime>,
 }
 
 impl Default for Config {
@@ -149,6 +171,7 @@ impl Default for Config {
             format: Format::Plain { with_colors: true },
             limit: None,
             direction: None,
+            after: None,
             filters: Vec::new(),
         }
     }
@@ -194,6 +217,13 @@ impl Config {
             None
         };
 
+        let after = match matches.value_of("after") {
+            Some(date_str) => {
+                Some(NaiveDateTime::parse_from_str(date_str, "%Y-%m-%d %H:%M").unwrap())
+            }
+            None => None,
+        };
+
         Config {
             removed_only: matches.is_present("removed-only"),
             with_removed: matches.is_present("with-removed"),
@@ -202,6 +232,7 @@ impl Config {
             filters,
             format,
             direction,
+            after,
         }
     }
 }
@@ -209,6 +240,7 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::{NaiveDate, NaiveTime};
 
     #[test]
     fn should_validate_number() {
@@ -354,6 +386,30 @@ mod tests {
         ]);
         let config = Config::from_arg_matches(&matches);
         assert_eq!(config.direction, Some(Direction::Backwards { n: 50 }))
+    }
+
+    #[test]
+    fn should_create_config_from_args_after() {
+        let matches = parse_args(&[
+            String::from("pkghist"),
+            String::from("--after"),
+            String::from("2019-01-01 12:00"),
+        ]);
+        let config = Config::from_arg_matches(&matches);
+        assert_eq!(
+            config.after,
+            Some(NaiveDateTime::new(
+                NaiveDate::from_ymd(2019, 1, 1),
+                NaiveTime::from_hms(12, 0, 0)
+            ))
+        )
+    }
+
+    #[test]
+    fn should_create_config_from_args_after_none() {
+        let matches = parse_args(&[String::from("pkghist")]);
+        let config = Config::from_arg_matches(&matches);
+        assert_eq!(config.after, None)
     }
 
 }
