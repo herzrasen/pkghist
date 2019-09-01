@@ -31,6 +31,22 @@ pub struct PacmanEvent {
 }
 
 impl PacmanEvent {
+    pub fn new(
+        date: NaiveDateTime,
+        action: Action,
+        package: String,
+        from: String,
+        to: Option<String>,
+    ) -> PacmanEvent {
+        PacmanEvent {
+            date,
+            action,
+            package,
+            from,
+            to,
+        }
+    }
+
     pub fn printable_version(&self) -> String {
         if self.to.is_some() {
             self.to.clone().unwrap()
@@ -76,13 +92,7 @@ impl FromStr for PacmanEvent {
                         Some(to) => Some(String::from(to.as_str())),
                         None => None,
                     };
-                    Ok(PacmanEvent {
-                        date,
-                        action,
-                        package,
-                        from,
-                        to,
-                    })
+                    Ok(PacmanEvent::new(date, action, package, from, to))
                 }
                 None => Err(Error::new(ErrorDetail::InvalidFormat)),
             }
@@ -214,16 +224,16 @@ mod tests {
         let line: PacmanEvent = "[2019-06-26 10:47] [ALPM] reinstalled ansible (2.8.1-1)"
             .parse()
             .unwrap();
-        let exptected_pacman_event = PacmanEvent {
-            date: NaiveDateTime::new(
+        let exptected_pacman_event = PacmanEvent::new(
+            NaiveDateTime::new(
                 NaiveDate::from_ymd(2019, 6, 26),
                 NaiveTime::from_hms(10, 47, 0),
             ),
-            action: Action::Reinstalled,
-            package: String::from("ansible"),
-            from: String::from("2.8.1-1"),
-            to: None,
-        };
+            Action::Reinstalled,
+            String::from("ansible"),
+            String::from("2.8.1-1"),
+            None,
+        );
         assert_eq!(line, exptected_pacman_event)
     }
 
@@ -232,16 +242,16 @@ mod tests {
         let line: PacmanEvent = "[2019-07-04 14:05] [ALPM] removed gnome-common (3.18.0-3)"
             .parse()
             .unwrap();
-        let expected_pacman_event = PacmanEvent {
-            date: NaiveDateTime::new(
+        let expected_pacman_event = PacmanEvent::new(
+            NaiveDateTime::new(
                 NaiveDate::from_ymd(2019, 7, 4),
                 NaiveTime::from_hms(14, 5, 0),
             ),
-            action: Action::Removed,
-            package: String::from("gnome-common"),
-            from: String::from("3.18.0-3"),
-            to: None,
-        };
+            Action::Removed,
+            String::from("gnome-common"),
+            String::from("3.18.0-3"),
+            None,
+        );
         assert_eq!(line, expected_pacman_event)
     }
 

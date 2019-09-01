@@ -43,7 +43,7 @@ pub fn range<'a, S: BuildHasher + Default>(
 
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
+    use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 
     use crate::pacman::action::Action;
     use crate::pacman::group::Group;
@@ -53,49 +53,66 @@ mod tests {
 
     fn some_pacman_events() -> Vec<PacmanEvent> {
         let mut pacman_events = Vec::new();
-        pacman_events.push(PacmanEvent {
-            package: String::from("some-package"),
-            action: Action::Installed,
-            from: String::from("0.0.1"),
-            to: None,
-            date: Utc::now().naive_local(),
-        });
-        pacman_events.push(PacmanEvent {
-            package: String::from("another-package"),
-            action: Action::Installed,
-            from: String::from("0.0.2"),
-            to: None,
-            date: Utc::now().naive_local(),
-        });
-        pacman_events.push(PacmanEvent {
-            package: String::from("another-package"),
-            action: Action::Upgraded,
-            from: String::from("0.0.2"),
-            to: Some(String::from("0.0.3")),
-            date: Utc::now().naive_local(),
-        });
-        pacman_events.push(PacmanEvent {
-            package: String::from("another-package"),
-            action: Action::Removed,
-            from: String::from("0.0.2"),
-            to: None,
-            date: Utc::now().naive_local(),
-        });
-        pacman_events.push(PacmanEvent {
-            package: String::from("another-package"),
-            action: Action::Installed,
-            from: String::from("0.0.2"),
-            to: None,
-            date: Utc::now().naive_local(),
-        });
-
-        pacman_events.push(PacmanEvent {
-            package: String::from("no-longer-used"),
-            action: Action::Removed,
-            from: String::from("0.0.1"),
-            to: None,
-            date: Utc::now().naive_local(),
-        });
+        pacman_events.push(PacmanEvent::new(
+            NaiveDateTime::new(
+                NaiveDate::from_ymd(2019, 08, 30),
+                NaiveTime::from_hms(11, 30, 0),
+            ),
+            Action::Installed,
+            String::from("a"),
+            String::from("0.0.1"),
+            None,
+        ));
+        pacman_events.push(PacmanEvent::new(
+            NaiveDateTime::new(
+                NaiveDate::from_ymd(2019, 08, 30),
+                NaiveTime::from_hms(11, 30, 0),
+            ),
+            Action::Installed,
+            String::from("b"),
+            String::from("0.0.2"),
+            None,
+        ));
+        pacman_events.push(PacmanEvent::new(
+            NaiveDateTime::new(
+                NaiveDate::from_ymd(2019, 08, 30),
+                NaiveTime::from_hms(12, 30, 0),
+            ),
+            Action::Installed,
+            String::from("b"),
+            String::from("0.0.2"),
+            Some(String::from("0.0.3")),
+        ));
+        pacman_events.push(PacmanEvent::new(
+            NaiveDateTime::new(
+                NaiveDate::from_ymd(2019, 08, 30),
+                NaiveTime::from_hms(12, 31, 0),
+            ),
+            Action::Removed,
+            String::from("b"),
+            String::from("0.0.2"),
+            None,
+        ));
+        pacman_events.push(PacmanEvent::new(
+            NaiveDateTime::new(
+                NaiveDate::from_ymd(2019, 08, 30),
+                NaiveTime::from_hms(12, 35, 0),
+            ),
+            Action::Installed,
+            String::from("b"),
+            String::from("0.0.2"),
+            None,
+        ));
+        pacman_events.push(PacmanEvent::new(
+            NaiveDateTime::new(
+                NaiveDate::from_ymd(2019, 08, 30),
+                NaiveTime::from_hms(12, 35, 0),
+            ),
+            Action::Removed,
+            String::from("c"),
+            String::from("0.0.2"),
+            None,
+        ));
         pacman_events
     }
 
@@ -110,7 +127,7 @@ mod tests {
 
         // then
         assert_eq!(filtered.keys().len(), 2);
-        assert!(filtered.get(&String::from("another-package")).is_some());
-        assert!(filtered.get(&String::from("no-longer-used")).is_some())
+        assert!(filtered.get(&String::from("b")).is_some());
+        assert!(filtered.get(&String::from("c")).is_some())
     }
 }

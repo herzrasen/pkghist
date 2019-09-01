@@ -40,7 +40,7 @@ pub fn run(config: Config) -> Result<(), Error> {
 
     for mut events in sorted {
         events.sort();
-        let package_history = from_pacman_events(events);
+        let package_history = PackageHistory::from_pacman_events(events);
         package_histories.push(package_history);
     }
 
@@ -56,23 +56,46 @@ pub struct Event {
     pub a: String,
 }
 
+impl Event {
+    fn new(version: String, date: String, action: String) -> Event {
+        Event {
+            v: version,
+            d: date,
+            a: action,
+        }
+    }
+
+    fn from_pacman_event(pacman_event: &PacmanEvent) -> Event {
+        Event::new(
+            pacman_event.printable_version(),
+            pacman_event.date.to_string(),
+            pacman_event.action.to_string(),
+        )
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PackageHistory {
     pub p: String,
     pub e: Vec<Event>,
 }
 
-fn from_pacman_events(pacman_events: Vec<&PacmanEvent>) -> PackageHistory {
-    let e: Vec<Event> = pacman_events
-        .iter()
-        .map(|e| Event {
-            v: e.printable_version(),
-            d: e.date.to_string(),
-            a: e.action.to_string(),
-        })
-        .collect();
-    let p = pacman_events.first().unwrap().package.clone();
-    PackageHistory { p, e }
+impl PackageHistory {
+    fn new(package: String, events: Vec<Event>) -> PackageHistory {
+        PackageHistory {
+            p: package,
+            e: events,
+        }
+    }
+
+    fn from_pacman_events(pacman_events: Vec<&PacmanEvent>) -> PackageHistory {
+        let e: Vec<Event> = pacman_events
+            .iter()
+            .map(|e| Event::from_pacman_event(e))
+            .collect();
+        let p = pacman_events.first().unwrap().package.clone();
+        PackageHistory::new(p, e)
+    }
 }
 
 fn format_json<W: std::io::Write>(
@@ -171,6 +194,51 @@ mod tests {
     use Printer;
 
     use super::*;
+    use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+
+    #[test]
+    fn should_create_package_histories() {
+        let ev1 = PacmanEvent::new(
+            NaiveDateTime::new(
+                NaiveDate::from_ymd(2019, 9, 1),
+                NaiveTime::from_hms(12, 30, 0),
+            ),
+            Action::Installed,
+            String::from("test"),
+            String::from("0.1.0"),
+            None,
+        );
+        let ev2 = PacmanEvent::new(
+            NaiveDateTime::new(
+                NaiveDate::from_ymd(2019, 9, 1),
+                NaiveTime::from_hms(18, 30, 10),
+            ),
+            Action::Upgraded,
+            String::from("test"),
+            String::from("0.1.0"),
+            Some(String::from("0.1.1")),
+        );
+
+        let pacman_events = vec![&ev1, &ev2];
+        let package_history = PackageHistory::from_pacman_events(pacman_events);
+        assert_eq!(package_history.p, "test");
+        assert_eq!(package_history.e.len(), 2);
+        assert_eq!(
+            package_history.e,
+            vec![
+                Event::new(
+                    String::from("0.1.0"),
+                    String::from("2019-09-01 12:30:00"),
+                    String::from("Installed")
+                ),
+                Event::new(
+                    String::from("0.1.1"),
+                    String::from("2019-09-01 18:30:10"),
+                    String::from("Upgraded")
+                )
+            ]
+        )
+    }
 
     #[test]
     fn should_print_to_stdout_colored() {
