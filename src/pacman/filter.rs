@@ -1,9 +1,12 @@
+use std::collections::HashMap;
+
+use chrono::NaiveDateTime;
+
 use crate::opt::Config;
 use crate::pacman::group::Group;
 use crate::pacman::newest::Newest;
 use crate::pacman::range;
 use crate::pacman::PacmanEvent;
-use std::collections::HashMap;
 
 pub trait Filter {
     type Event;
@@ -42,7 +45,7 @@ impl Filter for Vec<PacmanEvent> {
         without_removed
     }
 
-    fn filter_packages(&self, config: &Config) -> HashMap<&String, Vec<&Self::Event>> {
+    fn filter_packages<'a>(&self, config: &Config) -> HashMap<&String, Vec<&Self::Event>> {
         let packages = if config.removed_only {
             self.without_installed()
         } else if !config.with_removed {
@@ -51,22 +54,32 @@ impl Filter for Vec<PacmanEvent> {
             self.group()
         };
 
-        let filtered_packages = if !config.filters.is_empty() {
-            let mut filtered = HashMap::new();
-            for (package, events) in packages {
-                if config.filters.contains(package) {
-                    filtered.insert(package, events);
+        let mut filtered_packages = HashMap::new();
+        for (package, events) in packages {
+            let filtered_events = filter_events(events.clone(), &config.after);
+            if !filtered_events.is_empty() {
+                if config.filters.is_empty() {
+                    filtered_packages.insert(package, filtered_events);
+                } else if config.filters.contains(package) {
+                    filtered_packages.insert(package, filtered_events);
                 }
             }
-            filtered
-        } else {
-            packages
-        };
+        }
 
         limit_pacman_events(
             &range::range(&filtered_packages, &config.direction),
             config.limit,
         )
+    }
+}
+
+fn filter_events<'a>(
+    events: Vec<&'a PacmanEvent>,
+    after: &Option<NaiveDateTime>,
+) -> Vec<&'a PacmanEvent> {
+    match after {
+        Some(a) => events.into_iter().filter(|event| event.date > *a).collect(),
+        None => events,
     }
 }
 
@@ -98,16 +111,17 @@ pub fn is_relevant_package(filters: &[String], package: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
-
-    use super::*;
+    use std::fs;
     use std::fs::File;
     use std::io::Write;
+    use std::path::Path;
+
+    use chrono::{NaiveDate, NaiveTime};
+    use filepath::FilePath;
 
     use crate::pacman;
-    use filepath::FilePath;
-    use std::fs;
-    use std::path::Path;
+
+    use super::*;
 
     #[test]
     fn should_not_filter_packages_when_no_filters_are_defined() {
@@ -252,35 +266,50 @@ mod tests {
             action: pacman::action::Action::Installed,
             from: String::from("0.0.1"),
             to: None,
-            date: Utc::now().naive_local(),
+            date: NaiveDateTime::new(
+                NaiveDate::from_ymd(2019, 08, 30),
+                NaiveTime::from_hms(11, 30, 0),
+            ),
         });
         pacman_events.push(PacmanEvent {
             package: String::from("another-package"),
             action: pacman::action::Action::Installed,
             from: String::from("0.0.2"),
             to: None,
-            date: Utc::now().naive_local(),
+            date: NaiveDateTime::new(
+                NaiveDate::from_ymd(2019, 08, 30),
+                NaiveTime::from_hms(11, 30, 0),
+            ),
         });
         pacman_events.push(PacmanEvent {
             package: String::from("another-package"),
             action: pacman::action::Action::Upgraded,
             from: String::from("0.0.2"),
             to: Some(String::from("0.0.3")),
-            date: Utc::now().naive_local(),
+            date: NaiveDateTime::new(
+                NaiveDate::from_ymd(2019, 08, 30),
+                NaiveTime::from_hms(12, 30, 0),
+            ),
         });
         pacman_events.push(PacmanEvent {
             package: String::from("another-package"),
             action: pacman::action::Action::Removed,
             from: String::from("0.0.2"),
             to: None,
-            date: Utc::now().naive_local(),
+            date: NaiveDateTime::new(
+                NaiveDate::from_ymd(2019, 08, 30),
+                NaiveTime::from_hms(12, 31, 0),
+            ),
         });
         pacman_events.push(PacmanEvent {
             package: String::from("another-package"),
             action: pacman::action::Action::Installed,
             from: String::from("0.0.2"),
             to: None,
-            date: Utc::now().naive_local(),
+            date: NaiveDateTime::new(
+                NaiveDate::from_ymd(2019, 08, 30),
+                NaiveTime::from_hms(12, 35, 0),
+            ),
         });
 
         pacman_events.push(PacmanEvent {
@@ -288,7 +317,10 @@ mod tests {
             action: pacman::action::Action::Removed,
             from: String::from("0.0.1"),
             to: None,
-            date: Utc::now().naive_local(),
+            date: NaiveDateTime::new(
+                NaiveDate::from_ymd(2019, 08, 30),
+                NaiveTime::from_hms(12, 35, 0),
+            ),
         });
         pacman_events
     }
@@ -365,5 +397,29 @@ mod tests {
         for (_, l) in limited {
             assert_eq!(l.len(), 1)
         }
+    }
+
+    #[test]
+    fn should_filter_events_before_date() {
+        let pacman_events = some_pacman_events();
+        let refs = pacman_events.iter().collect();
+        let filtered = filter_events(
+            refs,
+            &Some(NaiveDateTime::new(
+                NaiveDate::from_ymd(2019, 8, 30),
+                NaiveTime::from_hms(12, 31, 0),
+            )),
+        );
+
+        assert_eq!(filtered.len(), 2)
+    }
+
+    #[test]
+    fn should_filter_no_events() {
+        let pacman_events = some_pacman_events();
+        let refs = pacman_events.iter().collect();
+        let filtered = filter_events(refs, &None);
+
+        assert_eq!(filtered.len(), 6)
     }
 }
