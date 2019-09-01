@@ -4,9 +4,10 @@ use itertools::Itertools;
 
 use crate::opt::Direction;
 use crate::pacman::PacmanEvent;
+use std::hash::BuildHasher;
 
-pub fn range<'a>(
-    grouped: &HashMap<&'a String, Vec<&'a PacmanEvent>>,
+pub fn range<'a, S: BuildHasher + Default>(
+    grouped: &HashMap<&'a String, Vec<&'a PacmanEvent>, S>,
     direction: &Option<Direction>,
 ) -> HashMap<&'a String, Vec<&'a PacmanEvent>> {
     let sorted: Vec<&String> = grouped

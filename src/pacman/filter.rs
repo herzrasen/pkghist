@@ -45,7 +45,7 @@ impl Filter for Vec<PacmanEvent> {
         without_removed
     }
 
-    fn filter_packages<'a>(&self, config: &Config) -> HashMap<&String, Vec<&Self::Event>> {
+    fn filter_packages(&self, config: &Config) -> HashMap<&String, Vec<&Self::Event>> {
         let packages = if config.removed_only {
             self.without_installed()
         } else if !config.with_removed {
@@ -57,12 +57,10 @@ impl Filter for Vec<PacmanEvent> {
         let mut filtered_packages = HashMap::new();
         for (package, events) in packages {
             let filtered_events = filter_events(events.clone(), &config.after);
-            if !filtered_events.is_empty() {
-                if config.filters.is_empty() {
-                    filtered_packages.insert(package, filtered_events);
-                } else if config.filters.contains(package) {
-                    filtered_packages.insert(package, filtered_events);
-                }
+            if !filtered_events.is_empty()
+                && (config.filters.is_empty() || config.filters.contains(package))
+            {
+                filtered_packages.insert(package, filtered_events);
             }
         }
 
