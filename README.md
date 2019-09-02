@@ -36,6 +36,7 @@ FLAGS:
     -r, --with-removed    Include packages that are currently uninstalled
 
 OPTIONS:
+    -a, --after <date>                     Only consider events that occurred after 'date' [Format: "YYYY-MM-DD HH:MM"]
         --first <n>                        Output the first 'n' pacman events
         --last <n>                         Output the last 'n' pacman events
     -L, --limit <limit>                    How many versions to go back in report
@@ -44,6 +45,7 @@ OPTIONS:
 
 ARGS:
     <filter>...    Filter the packages that should be searched for
+
 ```
 
 ## Usage
