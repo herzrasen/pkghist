@@ -6,6 +6,8 @@ use crate::error::ErrorDetail;
 use chrono::NaiveDateTime;
 use clap::{App, Arg, ArgMatches};
 
+use regex::Regex;
+
 pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
     let app = App::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
@@ -155,7 +157,7 @@ pub struct Config {
     pub removed_only: bool,
     pub with_removed: bool,
     pub logfile: String,
-    pub filters: Vec<String>,
+    pub filters: Vec<Regex>,
     pub format: Format,
     pub limit: Option<u32>,
     pub direction: Option<Direction>,
@@ -184,7 +186,15 @@ impl Config {
 
     pub fn from_arg_matches(matches: &ArgMatches) -> Config {
         let filters = match matches.values_of("filter") {
-            Some(packages) => packages.map(String::from).collect(),
+            Some(filters) => filters.fold(Vec::new(), |mut current, f| {
+                match f.parse() {
+                    Ok(regex) => {
+                        current.push(regex);
+                        current
+                    }
+                    Err(_) => current
+                } 
+            }),
             None => Vec::new(),
         };
         let format_from_matches: Format =

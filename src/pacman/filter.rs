@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use chrono::NaiveDateTime;
 
+use regex::Regex;
+
 use crate::opt::Config;
 use crate::pacman::group::Group;
 use crate::pacman::newest::Newest;
@@ -58,8 +60,9 @@ impl Filter for Vec<PacmanEvent> {
         for (package, events) in packages {
             let filtered_events = filter_events(events.clone(), &config.after);
             if !filtered_events.is_empty()
-                && (config.filters.is_empty() || config.filters.contains(package))
+                && (config.filters.is_empty() || matches_filter(package, &config.filters))
             {
+                println!("Package {} matches the filter", package);
                 filtered_packages.insert(package, filtered_events);
             }
         }
@@ -69,6 +72,10 @@ impl Filter for Vec<PacmanEvent> {
             config.limit,
         )
     }
+}
+
+fn matches_filter(package: &str, filters: &Vec<Regex>) -> bool {
+    filters.into_iter().find(|f| f.is_match(package)).is_some()
 }
 
 fn filter_events<'a>(
@@ -123,6 +130,15 @@ mod tests {
     use crate::pacman::action::Action;
 
     #[test]
+    fn should_match_package_starting_with() {
+        let regex = Regex::new("^linux").unwrap();
+        let mut filters = Vec::new();
+        filters.push(regex);
+        assert!(matches_filter("linux", &filters));
+        assert_eq!(matches_filter("utils-linux", &filters), false)
+    }
+
+    #[test]
     fn should_not_filter_packages_when_no_filters_are_defined() {
         let file_name = uuid::Uuid::new_v4().to_string();
         let mut file = File::create(&file_name).unwrap();
@@ -171,9 +187,9 @@ mod tests {
         )
         .unwrap();
 
-        let mut filters: Vec<String> = Vec::new();
-        filters.push(String::from("bash"));
-        filters.push(String::from("linux"));
+        let mut filters: Vec<Regex> = Vec::new();
+        filters.push(Regex::new("bash").unwrap());
+        filters.push(Regex::new("linux").unwrap());
 
         let mut config = Config::new();
         config.logfile = file_name.clone();
@@ -207,9 +223,9 @@ mod tests {
         )
         .unwrap();
 
-        let mut filters: Vec<String> = Vec::new();
-        filters.push(String::from("bash"));
-        filters.push(String::from("linux"));
+        let mut filters: Vec<Regex> = Vec::new();
+        filters.push(Regex::new("bash").unwrap());
+        filters.push(Regex::new("linux").unwrap());
 
         let mut config = Config::new();
         config.logfile = file_name.clone();
