@@ -73,8 +73,8 @@ impl Filter for Vec<PacmanEvent> {
     }
 }
 
-fn matches_filter(package: &str, filters: &Vec<Regex>) -> bool {
-    filters.into_iter().find(|f| f.is_match(package)).is_some()
+fn matches_filter(package: &str, filters: &[Regex]) -> bool {
+    filters.iter().any(|f| f.is_match(package))
 }
 
 fn filter_events<'a>(
