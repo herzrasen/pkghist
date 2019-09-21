@@ -186,14 +186,12 @@ impl Config {
 
     pub fn from_arg_matches(matches: &ArgMatches) -> Config {
         let filters = match matches.values_of("filter") {
-            Some(filters) => filters.fold(Vec::new(), |mut current, f| {
-                match f.parse() {
-                    Ok(regex) => {
-                        current.push(regex);
-                        current
-                    }
-                    Err(_) => current
-                } 
+            Some(filters) => filters.fold(Vec::new(), |mut current, f| match f.parse() {
+                Ok(regex) => {
+                    current.push(regex);
+                    current
+                }
+                Err(_) => current,
             }),
             None => Vec::new(),
         };

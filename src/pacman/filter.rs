@@ -62,7 +62,6 @@ impl Filter for Vec<PacmanEvent> {
             if !filtered_events.is_empty()
                 && (config.filters.is_empty() || matches_filter(package, &config.filters))
             {
-                println!("Package {} matches the filter", package);
                 filtered_packages.insert(package, filtered_events);
             }
         }
@@ -188,8 +187,8 @@ mod tests {
         .unwrap();
 
         let mut filters: Vec<Regex> = Vec::new();
-        filters.push(Regex::new("bash").unwrap());
-        filters.push(Regex::new("linux").unwrap());
+        filters.push(Regex::new("^bash$").unwrap());
+        filters.push(Regex::new("^linux$").unwrap());
 
         let mut config = Config::new();
         config.logfile = file_name.clone();
