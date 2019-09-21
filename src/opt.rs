@@ -94,7 +94,9 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
         )
         .arg(
             Arg::with_name("filter")
-                .help("Filter the packages that should be searched for")
+                .help("Filter the packages that should be searched for. \
+                Use regular expressions to specify the exact pattern to match \
+                (e.g. ^linux$ only matches the package 'linux'")
                 .multiple(true),
         );
     app.get_matches_from(argv)
