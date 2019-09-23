@@ -1,44 +1,49 @@
 language: rust
 rust:
-  - stable
-  - beta
-  - nightly
+- stable
+- beta
+- nightly
 matrix:
   fast_finish: true
   allow_failures:
-    - rust: nightly
+  - rust: nightly
   include:
-    - rust: stable
-      env: NAME='linting'
-      before_script:
-        - rustup component add rustfmt-preview
-        - rustup component add clippy-preview
-      script:
-        - cargo fmt --all -- --check
-        - cargo clippy
-
-    - env: NAME='cargo-travis'
-      sudo: required # travis-ci/travis-ci#9061
-      before_script:
-        - cargo install cargo-update || echo "cargo-update already installed"
-        - cargo install cargo-travis || echo "cargo-travis already installed"
-        - cargo install-update -a
-      script:
-        - |
-          cargo build --verbose &&
-          cargo coverage --verbose &&
-          bash <(curl -s https://codecov.io/bash) -s target/kcov
-      addons: # required for kcov
-        apt:
-          packages:
-            - libcurl4-openssl-dev
-            - libelf-dev
-            - libdw-dev
-            - binutils-dev
-            - cmake
-
-script: |
+  - rust: stable
+    env: NAME='linting'
+    before_script:
+    - rustup component add rustfmt-preview
+    - rustup component add clippy-preview
+    script:
+    - cargo fmt --all -- --check
+    - cargo clippy
+  - env: NAME='cargo-travis'
+    sudo: required
+    before_script:
+    - cargo install cargo-update || echo "cargo-update already installed"
+    - cargo install cargo-travis || echo "cargo-travis already installed"
+    - cargo install-update -a
+    script:
+    - |
+      cargo build --verbose &&
+      cargo coverage --verbose &&
+      bash <(curl -s https://codecov.io/bash) -s target/kcov
+    addons:
+      apt:
+        packages:
+        - libcurl4-openssl-dev
+        - libelf-dev
+        - libdw-dev
+        - binutils-dev
+        - cmake
+script: |-
   export RUST_BACKTRACE=1 &&
   cargo build --verbose &&
   cargo test --verbose &&
   cargo doc --no-deps --verbose
+deploy:
+  provider: releases
+  api_key:
+    secure: WZmxFj6tOHQr8/znaBnyMcJvZ8G4i/rbaSQMGZUzKaXfUhHQ4EQEdt5AaSSv3puDmqmKpNJOZpCNlFItOw+5gL0AOXXliJWWyDZlCH5NX1rMLkIC1UKbW4pqn1rpkst9MpyqU+li35Qq455gMqwb848+aoHylwkxSqbAciAxSox+Dr+GDGpy/5IgRFIfVpXHTU85XP95T6gbsi0ehtxyQEbj5cP/ZH2P5zbPd/TiP4ifbREsXBgXXWVsjfIeUJl+Q+HxzP4RFLFoxVWKmdEeSfFlOaEkkL/AWRVrriTqCvEiiZDyDRUXlFVXuDHdhBA8fOJc8CT0BKVMfBi1nYJB+HJ+IrMJREmwgbd7Y6q+XU+95cy5Qn7zcsul6Q7/ROxMs7cYwjNKrkibaKtrVLOOut25mH09HXsIBayQrJLBkjR569u5r3nBZWynoyih1WAPmTTsC42IAM6iiX2R7c97RiCaZu0AxCybIvhxRbZ3E7lsuUVOUEABKHzpcYs2H4rzQZ/qdyW71QOZhrwLnY1IePZ9cDctcxvjEKG4MufPtclZccRsAoXp2QIUmHqcSD3gxJVSkCEWjoBHGH7pcd+HHwFN6I+pqHDPWA9mhT95/V54ZVMFZgiRsMQ+KKMmeakMW7mndRCZngogDMclwsiAjmuKwSGeHadIBccAoxR2zhg=
+  file: target/release/pkghist
+  on:
+    repo: herzrasen/pkghist
