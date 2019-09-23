@@ -1,6 +1,6 @@
 [package]
 name = "pkghist"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Dennis Mellert <dennis.mellert@gmail.com>"]
 edition = "2018"
 
