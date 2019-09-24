@@ -1,5 +1,6 @@
 [package]
 name = "pkghist"
+description = "Query the local version history of packages"
 version = "0.1.0"
 authors = ["Dennis Mellert <dennis.mellert@gmail.com>"]
 edition = "2018"
