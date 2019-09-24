@@ -6,7 +6,7 @@ authors = ["Dennis Mellert <dennis.mellert@gmail.com>"]
 edition = "2018"
 repository = "https://github.com/herzrasen/pkghist"
 readme = "README.md"
-keywords = ["pacman", "arch", "pkg"]
+keywords = ["pacman", "arch", "pkg", "arch-linux"]
 license-file = "LICENSE"
 travis-ci = { repository = "herzrasen/pkghist", branch = "master" }
 codecov = { repository = "herzrasen/pkghist", branch = "master", service = "github" }
