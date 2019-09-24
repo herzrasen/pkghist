@@ -44,7 +44,7 @@ before_script:
 script: |-
   export RUST_BACKTRACE=1 &&
   cargo build --verbose &&
-  cargo test --verbose &&
+  cargo test --verbose
 after_success:
   - semantic-rs
 env:
