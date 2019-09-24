@@ -46,7 +46,7 @@ script: |-
   cargo build --verbose &&
   cargo test --verbose
 after_success:
-- semantic-rs
+- RUST_LOG=debug semantic-rs
 env:
   global:
   - secure: pSgKPdkBJHNrrgqM/SzMwsp5DM2HNYb8ZCg1cQxTHYNpTEenH1ZQTyCGyzGxHIs/QGggHCu8xU2ultlUbFKzXERTYhJOVOwvlOL2Vl3ski7PICKwRY/1/Vx6m9HQUdXCWKi9evWT1ii9ppsXuwrZBm8WT4QY58YBFdlt8SVkKibrAoD+OSzX1eesryWhTiFrKueAo6hHRoavQvD5FJL22nBBeZdbT8BMXWWpkJuHB5IpbVQB1/jQvO0zu4IiH6Y8icBmzNdyR4MRrIEzio8eVSY3Pn8d3ZQ0JfhJ83fkc9ZUx6JVmuoLMV0G3MpC3tunOZGL0jMMV0+eZ45SMW/QWTSTr1vrZLbmYP47oUN1uFqViZDD4Xyb+kA1FtrM1tcGkfsjnbSj7zYp8vU+AuI3u+3GtzyfA19UyY75PzNKtNhmbWLMTH0GKN5TUfZhDA22Zd9dJYxOpLB0UnEf35gh9B6n6YcQGTvWd3gFHQh1LZEnog1aaaTVnRbabyMZsviBC2rmSxIwcqp6jfkMOy+N2UgHsewHQHlUY84+Ez73cQeccdJDu84dGcHhTOQT/ndQY79/JTfyKIoBkqIJPXG1PrWo88SAEhN7mm4cpr81hMQxNuEPbc2jMrKyQ/1qt7xVE0JZgpPmYf48FXvnSJvWjSO5ZuRcJ++rZIpvUmRDZXo=
