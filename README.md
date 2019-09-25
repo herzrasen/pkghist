@@ -22,7 +22,7 @@ This will build `pkghist` and install it into your cargo bin directory (usually 
 
 ## Help
 ```bash
-pkghist 0.0.1
+pkghist 0.1.0
 Trace package versions from pacman's logfile
 
 USAGE:
@@ -44,8 +44,8 @@ OPTIONS:
     -o, --output-format <output-format>    Select the output format [default: plain]  [possible values: json, plain]
 
 ARGS:
-    <filter>...    Filter the packages that should be searched for
-
+    <filter>...    Filter the packages that should be searched for. Use regular expressions to specify the exact
+                   pattern to match (e.g. ^linux$ only matches the package 'linux')
 ```
 
 ## Usage
