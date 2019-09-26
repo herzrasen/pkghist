@@ -49,29 +49,9 @@ ARGS:
 ```
 
 ## Usage
-### List all installed packages in ordered by install/upgrade date
+### List all installed packages ordered by install/upgrade date
 ```
 pkghist 
-```
-
-This will output a (possibly large) list of installed packages and their update history:
-```
-acl
-  [2019-03-03 10:02:00] Installed
-    2.2.53-1
-attr
-  [2019-03-03 10:02:00] Installed
-    2.4.48-1
-autoconf
-  [2019-03-03 10:02:00] Installed
-    2.69-5
-automake
-  [2019-03-03 10:02:00] Installed
-    1.16.1-1
-ca-certificates
-  [2019-03-03 10:02:00] Installed
-    20181109-1
-...
 ```
 
 ### List the last `n` installed / upgraded packages
@@ -79,64 +59,32 @@ ca-certificates
 pkghist --last <n>
 ```
 
-#### Example
-```
-pkghist --last 2
-```
-
-This returns the most recently installed / upgraded packages:
-
-```bash
-diff-so-fancy
-  [2019-08-27 06:55:00] Installed
-    1.2.6-1
-  [2019-08-30 21:46:00] Upgraded
-    1.2.7-1
-electron4
-  [2019-06-29 22:33:00] Installed
-    4.2.5-1
-  [2019-07-02 22:44:00] Upgraded
-    4.2.6-1
-  [2019-07-20 21:42:00] Upgraded
-    4.2.8-1
-  [2019-08-12 07:12:00] Upgraded
-    4.2.8-2
-  [2019-08-30 21:46:00] Upgraded
-    4.2.10-1
-```
-
 ### Limit the number of versions per package
 ```
 pkghist --limit <n>
 ```
 
+### Search for a package by exact name
+```
+pkghist "^name$"
+```
+
+This uses regex syntax to describe the pattern to search for.
+
 #### Example
 ```
-pkghist --limit 2
+pkghist "^zsh$"
+```
+This return only the package `zsh` and not for example `zsh-syntax-highlighting`.
+
+### Search for all packages containing some string
+```
+pkghist string
 ```
 
-```bash
-acl
-  [2019-03-03 10:02:00] Installed
-    2.2.53-1
-argon2
-  [2019-03-03 10:02:00] Installed
-    20171227-3
-  [2019-07-04 23:00:00] Upgraded
-    20190702-1
-attr
-  [2019-03-03 10:02:00] Installed
-    2.4.48-1
-autoconf
-  [2019-03-03 10:02:00] Installed
-    2.69-5
-automake
-  [2019-03-03 10:02:00] Installed
-    1.16.1-1
-ca-certificates
-  [2019-03-03 10:02:00] Installed
-    20181109-1
-...
+#### Example
+```
+pkghist zsh
 ```
 
-This can be combined with `--last` and `--first`.
+This returns the package `zsh` as well as for example `zsh-syntax-highlighting`.
