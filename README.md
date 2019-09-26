@@ -9,6 +9,14 @@
 `pkghist` parses Pacman's logfile (usually located under `/var/log/pacman.log` or specified via `--logfile /path/to/pacman.log`) and outputs version information. 
 `pkghist` can list information about currently uninstalled packages using the `--removed-only` or `--with-removed` options. 
 
+## Install
+If you are on Arch, either install `pkghist` using AUR or by building it using makepkg
+
+```bash
+git clone https://aur.archlinux.org/pkghist.git
+cd pkghist
+makepkg -si
+```
 ## Build
 To build `pkghist` from source you need a `Rust` installation including it's build tool `Cargo`. 
 Install it either using pacman or [follow the official install guide](https://www.rust-lang.org/tools/install).
