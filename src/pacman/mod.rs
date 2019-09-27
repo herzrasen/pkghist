@@ -316,5 +316,4 @@ mod tests {
 
         fs::remove_file(file.path().unwrap()).unwrap()
     }
-
 }

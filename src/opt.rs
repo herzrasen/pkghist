@@ -421,5 +421,4 @@ mod tests {
         let config = Config::from_arg_matches(&matches);
         assert_eq!(config.after, None)
     }
-
 }

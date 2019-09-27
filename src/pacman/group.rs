@@ -52,5 +52,4 @@ mod tests {
         let groups = pacman_events.group();
         assert_eq!(groups.keys().len(), 3)
     }
-
 }

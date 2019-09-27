@@ -108,5 +108,4 @@ mod tests {
         let str = format!("{:?}", error);
         assert_eq!(str, String::from("Error { detail: InvalidFormat }"))
     }
-
 }

@@ -301,5 +301,4 @@ mod tests {
         assert_eq!(result.is_ok(), true);
         fs::remove_file(file.path().unwrap()).unwrap()
     }
-
 }
