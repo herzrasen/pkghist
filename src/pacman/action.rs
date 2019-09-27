@@ -7,6 +7,7 @@ pub enum Action {
     Installed,
     Reinstalled,
     Upgraded,
+    Downgraded,
     Removed,
 }
 
@@ -32,6 +33,7 @@ impl FromStr for Action {
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "upgraded" => Ok(Action::Upgraded),
+            "downgraded" => Ok(Action::Downgraded),
             "installed" => Ok(Action::Installed),
             "reinstalled" => Ok(Action::Reinstalled),
             "removed" => Ok(Action::Removed),
@@ -68,6 +70,12 @@ mod tests {
     fn should_parse_action_reinstalled() {
         let action: Action = "reinstalled".parse().unwrap();
         assert_eq!(action, Action::Reinstalled)
+    }
+
+    #[test]
+    fn should_parse_action_downgraded() {
+        let action: Action = "downgraded".parse().unwrap();
+        assert_eq!(action, Action::Downgraded)
     }
 
     #[test]
