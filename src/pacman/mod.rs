@@ -19,7 +19,7 @@ pub mod newest;
 pub mod range;
 
 lazy_static! {
-    static ref REGEX: Regex = Regex::new(r"^\[(?P<date>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2})\]\s\[.+\]\s(?P<action>upgraded|installed|removed|reinstalled)\s(?P<package>.+)\s\((?P<from>.+?)(\s->\s(?P<to>.+))?\)").unwrap();
+    static ref REGEX: Regex = Regex::new(r"^\[(?P<date>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2})\]\s\[.+\]\s(?P<action>upgraded|installed|removed|reinstalled|downgraded)\s(?P<package>.+)\s\((?P<from>.+?)(\s->\s(?P<to>.+))?\)").unwrap();
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -225,6 +225,25 @@ mod tests {
             to: None,
         };
         assert_eq!(line, exptected_pacman_event)
+    }
+
+    #[test]
+    fn should_extract_a_pacman_downgraded_event() {
+        let line: PacmanEvent =
+            "[2018-12-15 00:22] [ALPM] downgraded mps-youtube (0.2.8-2 -> 0.2.8-1)"
+                .parse()
+                .unwrap();
+        let expected_pacman_event = PacmanEvent {
+            date: NaiveDateTime::new(
+                NaiveDate::from_ymd(2018, 12, 15),
+                NaiveTime::from_hms(0, 22, 0),
+            ),
+            action: Action::Downgraded,
+            package: String::from("mps-youtube"),
+            from: String::from("0.2.8-2"),
+            to: Some(String::from("0.2.8-1")),
+        };
+        assert_eq!(line, expected_pacman_event)
     }
 
     #[test]
