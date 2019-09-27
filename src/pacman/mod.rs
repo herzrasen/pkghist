@@ -7,6 +7,7 @@ use std::str::FromStr;
 use chrono::NaiveDateTime;
 use lazy_static::*;
 use regex::*;
+use std::error::Error as StdError;
 
 use crate::error::{Error, ErrorDetail};
 use crate::pacman::action::Action;
@@ -105,15 +106,22 @@ impl FromStr for PacmanEvent {
 pub fn from_file(path: &Path) -> std::io::Result<Vec<PacmanEvent>> {
     let f = File::open(path)?;
     let file = BufReader::new(&f);
-    let pacman_events: Vec<PacmanEvent> = file.lines().fold(vec![], |mut current, l| {
-        match PacmanEvent::from_str(l.unwrap().as_str()) {
-            Ok(pacman_event) => {
-                current.push(pacman_event);
-                current
-            }
-            Err(_) => current,
-        }
-    });
+    let pacman_events: Vec<PacmanEvent> =
+        file.lines()
+            .enumerate()
+            .fold(vec![], |mut current, (idx, l)| match l {
+                Ok(line) => match PacmanEvent::from_str(line.as_str()) {
+                    Ok(pacman_event) => {
+                        current.push(pacman_event);
+                        current
+                    }
+                    Err(_) => current,
+                },
+                Err(e) => {
+                    eprintln!("Skipping line #{} ({:?})", idx + 1, e.description());
+                    current
+                }
+            });
     Ok(pacman_events)
 }
 
@@ -291,4 +299,22 @@ mod tests {
         );
         fs::remove_file(file.path().unwrap()).unwrap()
     }
+
+    #[test]
+    fn should_skip_invalid_line() {
+        let file_name = uuid::Uuid::new_v4().to_string();
+        let mut file = File::create(&file_name).unwrap();
+        writeln!(
+            file,
+            "[2018-12-15 00:19] [PACMAN] Running 'pacman -U ^��sA��'"
+        )
+        .unwrap();
+
+        let pacman_events = from_file(Path::new(&file_name)).unwrap();
+
+        assert_eq!(pacman_events.len(), 0);
+
+        fs::remove_file(file.path().unwrap()).unwrap()
+    }
+
 }
