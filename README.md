@@ -30,7 +30,7 @@ This will build `pkghist` and install it into your cargo bin directory (usually 
 
 ## Help
 ```bash
-pkghist 0.1.0
+pkghist 0.1.1
 Trace package versions from pacman's logfile
 
 USAGE:
@@ -74,14 +74,14 @@ pkghist --limit <n>
 
 ### Search for a package by exact name
 ```
-pkghist "^name$"
+pkghist '^name$'
 ```
 
 This uses regex syntax to describe the pattern to search for.
 
 #### Example
 ```
-pkghist "^zsh$"
+pkghist '^zsh$'
 ```
 This return only the package `zsh` and not for example `zsh-syntax-highlighting`.
 
