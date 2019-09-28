@@ -80,6 +80,11 @@ pub struct PackageHistory {
     pub e: Vec<Event>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Package {
+    pub p: String,
+}
+
 impl PackageHistory {
     fn new(package: String, events: Vec<Event>) -> PackageHistory {
         PackageHistory {
@@ -101,8 +106,14 @@ impl PackageHistory {
 fn format_json<W: std::io::Write>(
     stdout: &mut W,
     packages_with_version: &[PackageHistory],
+    without_details: bool,
 ) -> Result<(), Error> {
-    let json = serde_json::to_string_pretty(packages_with_version).unwrap();
+    let json = if without_details {
+        let packages: Vec<String> = packages_with_version.iter().map(|p| p.p.clone()).collect();
+        serde_json::to_string_pretty(&packages).unwrap()
+    } else {
+        serde_json::to_string_pretty(packages_with_version).unwrap()
+    };
     writeln!(stdout, "{}", json)?;
     Ok(())
 }
@@ -111,6 +122,7 @@ fn format_plain<W: std::io::Write>(
     stdout: &mut W,
     package_histories: &[PackageHistory],
     with_colors: bool,
+    without_details: bool,
 ) -> Result<(), Error> {
     for package_history in package_histories {
         if with_colors {
@@ -131,31 +143,33 @@ fn format_plain<W: std::io::Write>(
         } else {
             writeln!(stdout, "{}", package_history.p)?
         }
-        for event in &package_history.e {
-            if with_colors {
-                if let Action::Removed = event.a.parse().unwrap() {
-                    write!(stdout, "{red}", red = color::Fg(color::Red))?
+        if !without_details {
+            for event in &package_history.e {
+                if with_colors {
+                    if let Action::Removed = event.a.parse().unwrap() {
+                        write!(stdout, "{red}", red = color::Fg(color::Red))?
+                    }
+                    writeln!(
+                        stdout,
+                        "  [{date}] {action}",
+                        date = event.d,
+                        action = event.a,
+                    )?;
+                    writeln!(
+                        stdout,
+                        "    {version}{reset}",
+                        version = event.v,
+                        reset = color::Fg(color::Reset)
+                    )?
+                } else {
+                    writeln!(
+                        stdout,
+                        "  [{date}] {action}",
+                        date = event.d,
+                        action = event.a
+                    )?;
+                    writeln!(stdout, "    {version}", version = event.v)?
                 }
-                writeln!(
-                    stdout,
-                    "  [{date}] {action}",
-                    date = event.d,
-                    action = event.a,
-                )?;
-                writeln!(
-                    stdout,
-                    "    {version}{reset}",
-                    version = event.v,
-                    reset = color::Fg(color::Reset)
-                )?
-            } else {
-                writeln!(
-                    stdout,
-                    "  [{date}] {action}",
-                    date = event.d,
-                    action = event.a
-                )?;
-                writeln!(stdout, "    {version}", version = event.v)?
             }
         }
     }
@@ -177,8 +191,13 @@ impl Printer for Format {
         package_histories: &[PackageHistory],
     ) -> Result<(), Error> {
         match *self {
-            Format::Plain { with_colors } => format_plain(stdout, package_histories, with_colors),
-            Format::Json => format_json(stdout, package_histories),
+            Format::Plain {
+                with_colors,
+                without_details,
+            } => format_plain(stdout, package_histories, with_colors, without_details),
+            Format::Json { without_details } => {
+                format_json(stdout, package_histories, without_details)
+            }
         }
     }
 }
@@ -241,6 +260,49 @@ mod tests {
     }
 
     #[test]
+    fn should_print_json_to_stdout() {
+        let package_histories = vec![PackageHistory {
+            p: String::from("foo"),
+            e: vec![Event {
+                a: String::from("Installed"),
+                v: String::from("0.0.1"),
+                d: String::from("2019-08-26 12:00:00"),
+            }],
+        }];
+        let mut stdout = Vec::new();
+        Format::Json {
+            without_details: false,
+        }
+        .print(&mut stdout, &package_histories)
+        .unwrap();
+        let str = String::from_utf8(stdout).unwrap();
+        assert_eq!(
+            str,
+            "[\n  {\n    \"p\": \"foo\",\n    \"e\": [\n      {\n        \"v\": \"0.0.1\",\n        \"d\": \"2019-08-26 12:00:00\",\n        \"a\": \"Installed\"\n      }\n    ]\n  }\n]\n"
+        )
+    }
+
+    #[test]
+    fn should_print_json_to_stdout_no_details() {
+        let package_histories = vec![PackageHistory {
+            p: String::from("foo"),
+            e: vec![Event {
+                a: String::from("Installed"),
+                v: String::from("0.0.1"),
+                d: String::from("2019-08-26 12:00:00"),
+            }],
+        }];
+        let mut stdout = Vec::new();
+        Format::Json {
+            without_details: true,
+        }
+        .print(&mut stdout, &package_histories)
+        .unwrap();
+        let str = String::from_utf8(stdout).unwrap();
+        assert_eq!(str, "[\n  \"foo\"\n]\n")
+    }
+
+    #[test]
     fn should_print_to_stdout_colored() {
         let package_histories = vec![PackageHistory {
             p: String::from("foo"),
@@ -251,14 +313,38 @@ mod tests {
             }],
         }];
         let mut stdout = Vec::new();
-        Format::Plain { with_colors: true }
-            .print(&mut stdout, &package_histories)
-            .unwrap();
+        Format::Plain {
+            with_colors: true,
+            without_details: false,
+        }
+        .print(&mut stdout, &package_histories)
+        .unwrap();
         let str = String::from_utf8(stdout).unwrap();
         assert_eq!(
             str,
             "\u{1b}[38;5;2mfoo\u{1b}[39m\n  [2019-08-26 12:00:00] Installed\n    0.0.1\u{1b}[39m\n"
         )
+    }
+
+    #[test]
+    fn should_print_to_stdout_colored_no_details() {
+        let package_histories = vec![PackageHistory {
+            p: String::from("foo"),
+            e: vec![Event {
+                a: String::from("Installed"),
+                v: String::from("0.0.1"),
+                d: String::from("2019-08-26 12:00:00"),
+            }],
+        }];
+        let mut stdout = Vec::new();
+        Format::Plain {
+            with_colors: true,
+            without_details: true,
+        }
+        .print(&mut stdout, &package_histories)
+        .unwrap();
+        let str = String::from_utf8(stdout).unwrap();
+        assert_eq!(str, "\u{1b}[38;5;2mfoo\u{1b}[39m\n")
     }
 
     #[test]
@@ -272,11 +358,35 @@ mod tests {
             }],
         }];
         let mut stdout = Vec::new();
-        Format::Plain { with_colors: false }
-            .print(&mut stdout, &package_histories)
-            .unwrap();
+        Format::Plain {
+            with_colors: false,
+            without_details: false,
+        }
+        .print(&mut stdout, &package_histories)
+        .unwrap();
         let str = String::from_utf8(stdout).unwrap();
         assert_eq!(str, "foo\n  [2019-08-26 12:00:00] Installed\n    0.0.1\n")
+    }
+
+    #[test]
+    fn should_print_to_stdout_no_colors_no_details() {
+        let package_histories = vec![PackageHistory {
+            p: String::from("foo"),
+            e: vec![Event {
+                a: String::from("Installed"),
+                v: String::from("0.0.1"),
+                d: String::from("2019-08-26 12:00:00"),
+            }],
+        }];
+        let mut stdout = Vec::new();
+        Format::Plain {
+            with_colors: false,
+            without_details: true,
+        }
+        .print(&mut stdout, &package_histories)
+        .unwrap();
+        let str = String::from_utf8(stdout).unwrap();
+        assert_eq!(str, "foo\n")
     }
 
     #[test]

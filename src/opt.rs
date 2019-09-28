@@ -61,6 +61,12 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
                 .takes_value(false),
         )
         .arg(
+            Arg::with_name("no-details")
+            .long("no-details")
+            .takes_value(false)
+            .help("Only output the package names")
+        )
+        .arg(
             Arg::with_name("first")
                 .long("first")
                 .value_name("n")
@@ -93,7 +99,7 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
             Arg::with_name("filter")
                 .help("Filter the packages that should be searched for. \
                 Use regular expressions to specify the exact pattern to match \
-                (e.g. ^linux$ only matches the package 'linux'")
+                (e.g. '^linux$' only matches the package 'linux'")
                 .multiple(true),
         );
     app.get_matches_from(argv)
@@ -123,8 +129,13 @@ fn validate_date(str: String) -> Result<(), String> {
 
 #[derive(Debug, PartialOrd, PartialEq)]
 pub enum Format {
-    Plain { with_colors: bool },
-    Json,
+    Plain {
+        with_colors: bool,
+        without_details: bool,
+    },
+    Json {
+        without_details: bool,
+    },
 }
 
 impl FromStr for Format {
@@ -133,9 +144,14 @@ impl FromStr for Format {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let format_str = s.to_lowercase();
         if format_str == "json" {
-            Ok(Format::Json)
+            Ok(Format::Json {
+                without_details: false,
+            })
         } else if format_str == "plain" {
-            Ok(Format::Plain { with_colors: true })
+            Ok(Format::Plain {
+                with_colors: true,
+                without_details: false,
+            })
         } else {
             Err(Error::new(ErrorDetail::InvalidFormat))
         }
@@ -175,7 +191,10 @@ impl Default for Config {
             removed_only: false,
             with_removed: false,
             logfile: String::from("/var/log/pacman.log"),
-            format: Format::Plain { with_colors: true },
+            format: Format::Plain {
+                with_colors: true,
+                without_details: false,
+            },
             limit: None,
             direction: None,
             after: None,
@@ -200,16 +219,33 @@ impl Config {
             }),
             None => Vec::new(),
         };
+
         let format_from_matches: Format =
             matches.value_of("output-format").unwrap().parse().unwrap();
-        let format = if format_from_matches == (Format::Plain { with_colors: true }) {
-            if matches.is_present("no-colors") {
-                Format::Plain { with_colors: false }
-            } else {
-                Format::Plain { with_colors: true }
+
+        let with_colors = if matches.is_present("no-colors") {
+            false
+        } else {
+            true
+        };
+
+        let without_details = if matches.is_present("no-details") {
+            true
+        } else {
+            false
+        };
+
+        let format = if format_from_matches
+            == (Format::Plain {
+                with_colors: true,
+                without_details: false,
+            }) {
+            Format::Plain {
+                with_colors,
+                without_details,
             }
         } else {
-            Format::Json
+            Format::Json { without_details }
         };
 
         let limit = match matches.value_of("limit") {
@@ -277,28 +313,50 @@ mod tests {
     fn should_parse_format_plain() {
         let format: Result<Format, Error> = "plain".parse();
         assert!(format.is_ok());
-        assert_eq!(format.unwrap(), Format::Plain { with_colors: true })
+        assert_eq!(
+            format.unwrap(),
+            Format::Plain {
+                with_colors: true,
+                without_details: false
+            }
+        )
     }
 
     #[test]
     fn should_parse_format_plain_ignore_case() {
         let format: Result<Format, Error> = "PlAiN".parse();
         assert!(format.is_ok());
-        assert_eq!(format.unwrap(), Format::Plain { with_colors: true })
+        assert_eq!(
+            format.unwrap(),
+            Format::Plain {
+                with_colors: true,
+                without_details: false
+            }
+        )
     }
 
     #[test]
     fn should_parse_format_json() {
         let format: Result<Format, Error> = "json".parse();
         assert!(format.is_ok());
-        assert_eq!(format.unwrap(), Format::Json)
+        assert_eq!(
+            format.unwrap(),
+            Format::Json {
+                without_details: false
+            }
+        )
     }
 
     #[test]
     fn should_parse_format_json_ignore_case() {
         let format: Result<Format, Error> = "JsOn".parse();
         assert!(format.is_ok());
-        assert_eq!(format.unwrap(), Format::Json)
+        assert_eq!(
+            format.unwrap(),
+            Format::Json {
+                without_details: false
+            }
+        )
     }
 
     #[test]
@@ -319,7 +377,13 @@ mod tests {
         assert_eq!(config.filters.is_empty(), true);
         assert_eq!(config.with_removed, false);
         assert_eq!(config.removed_only, false);
-        assert_eq!(config.format, Format::Plain { with_colors: true })
+        assert_eq!(
+            config.format,
+            Format::Plain {
+                with_colors: true,
+                without_details: false
+            }
+        )
     }
 
     #[test]
@@ -357,7 +421,29 @@ mod tests {
             String::from("json"),
         ]);
         let config = Config::from_arg_matches(&matches);
-        assert_eq!(config.format, Format::Json)
+        assert_eq!(
+            config.format,
+            Format::Json {
+                without_details: false
+            }
+        )
+    }
+
+    #[test]
+    fn should_create_config_from_args_format_json_no_details() {
+        let matches = parse_args(&[
+            String::from("pkghist"),
+            String::from("--output-format"),
+            String::from("json"),
+            String::from("--no-details"),
+        ]);
+        let config = Config::from_arg_matches(&matches);
+        assert_eq!(
+            config.format,
+            Format::Json {
+                without_details: true
+            }
+        )
     }
 
     #[test]
