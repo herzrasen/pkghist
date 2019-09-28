@@ -48,14 +48,11 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
         )
         .arg(
             Arg::with_name("limit")
-                .help("How many versions to go back in report")
+                .help("How many versions to go back in report. [limit > 0]")
                 .short("L")
                 .long("limit")
                 .takes_value(true)
-                .validator(|v| match v.parse::<u32>() {
-                    Ok(_) => Ok(()),
-                    Err(_) => Err(String::from("Please provide a positive number")),
-                }),
+                .validator(validate_gt_0),
         )
         .arg(
             Arg::with_name("no-colors")
@@ -70,7 +67,7 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
                 .takes_value(true)
                 .conflicts_with_all(&["filter", "last"])
                 .help("Output the first 'n' pacman events")
-                .validator(validate_number),
+                .validator(validate_gt_0),
         )
         .arg(
             Arg::with_name("last")
@@ -79,7 +76,7 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
                 .takes_value(true)
                 .conflicts_with("filter")
                 .help("Output the last 'n' pacman events")
-                .validator(validate_number),
+                .validator(validate_gt_0),
         )
         .arg(
             Arg::with_name("after")
@@ -102,9 +99,15 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
     app.get_matches_from(argv)
 }
 
-fn validate_number(str: String) -> Result<(), String> {
+fn validate_gt_0(str: String) -> Result<(), String> {
     match str.parse::<u32>() {
-        Ok(_) => Ok(()),
+        Ok(l) => {
+            if l > 1 {
+                Ok(())
+            } else {
+                Err(String::from("limit must be greater than 0"))
+            }
+        }
         Err(_) => Err(String::from("Please provide a positive number")),
     }
 }
@@ -253,14 +256,20 @@ mod tests {
     use chrono::{NaiveDate, NaiveTime};
 
     #[test]
-    fn should_validate_number() {
-        let r = validate_number(String::from("123"));
+    fn should_validate_gt_0() {
+        let r = validate_gt_0(String::from("123"));
         assert_eq!(r.is_ok(), true)
     }
 
     #[test]
-    fn should_not_validate_number() {
-        let r = validate_number(String::from("notanumber"));
+    fn should_not_validate_gt_0_no_number() {
+        let r = validate_gt_0(String::from("notanumber"));
+        assert_eq!(r.is_err(), true)
+    }
+
+    #[test]
+    fn should_not_validate_gt_0() {
+        let r = validate_gt_0(String::from("0"));
         assert_eq!(r.is_err(), true)
     }
 
