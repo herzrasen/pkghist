@@ -30,7 +30,7 @@ This will build `pkghist` and install it into your cargo bin directory (usually 
 
 ## Help
 ```bash
-pkghist 0.1.1
+pkghist 0.2.0
 Trace package versions from pacman's logfile
 
 USAGE:
