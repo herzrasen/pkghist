@@ -39,6 +39,7 @@ USAGE:
 FLAGS:
     -h, --help            Prints help information
         --no-colors       Disable colored output
+        --no-details      Only output the package names
     -R, --removed-only    Only output packages that are currently uninstalled
     -V, --version         Prints version information
     -r, --with-removed    Include packages that are currently uninstalled
@@ -47,13 +48,13 @@ OPTIONS:
     -a, --after <date>                     Only consider events that occurred after 'date' [Format: "YYYY-MM-DD HH:MM"]
         --first <n>                        Output the first 'n' pacman events
         --last <n>                         Output the last 'n' pacman events
-    -L, --limit <limit>                    How many versions to go back in report
+    -L, --limit <limit>                    How many versions to go back in report. [limit > 0]
     -l, --logfile <FILE>                   Specify a logfile [default: /var/log/pacman.log]
     -o, --output-format <output-format>    Select the output format [default: plain]  [possible values: json, plain]
 
 ARGS:
     <filter>...    Filter the packages that should be searched for. Use regular expressions to specify the exact
-                   pattern to match (e.g. ^linux$ only matches the package 'linux')
+                   pattern to match (e.g. '^linux$' only matches the package 'linux'
 ```
 
 ## Usage
@@ -96,3 +97,8 @@ pkghist zsh
 ```
 
 This returns the package `zsh` as well as for example `zsh-syntax-highlighting`.
+
+### List the package names of all removed packages
+```
+pkghist --no-details --removed-only
+```

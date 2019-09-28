@@ -80,11 +80,6 @@ pub struct PackageHistory {
     pub e: Vec<Event>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Package {
-    pub p: String,
-}
-
 impl PackageHistory {
     fn new(package: String, events: Vec<Event>) -> PackageHistory {
         PackageHistory {
