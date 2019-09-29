@@ -197,30 +197,17 @@ fn format_compact<W: std::io::Write>(
                     )?
                 }
                 (false, true) => writeln!(stdout, "{package}|", package = package_history.p)?,
-                (true, false) => {
-                    match event.a.parse().unwrap() {
+                (with_colors, false) => {
+                    if with_colors {
+                                            match event.a.parse().unwrap() {
                         Action::Removed => write!(stdout, "{red}", red = color::Fg(color::Red))?,
                         Action::Downgraded => {
                             write!(stdout, "{yellow}", yellow = color::Fg(color::Yellow))?
                         }
                         _ => write!(stdout, "{green}", green = color::Fg(color::Green))?,
                     }
-                    writeln!(
-                        stdout,
-                        "|{package: <max_package_name_len$}|{date: <max_date_len$}|{action: <max_action_len$}|{version: <max_version_len$}|{reset}",
-                        package = package_history.p,
-                        max_package_name_len = max_package_name_len,
-                        date = event.d,
-                        max_date_len = max_date_len,
-                        action = event.a,
-                        max_action_len = max_action_len,
-                        version = event.v,
-                        max_version_len = max_version_len,
-                        reset = color::Fg(color::Reset)
-                    )?
-                }
-                (false, false) => {
-                    writeln!(
+                    }
+                    write!(
                         stdout,
                         "|{package: <max_package_name_len$}|{date: <max_date_len$}|{action: <max_action_len$}|{version: <max_version_len$}|",
                         package = package_history.p,
@@ -231,7 +218,12 @@ fn format_compact<W: std::io::Write>(
                         max_action_len = max_action_len,
                         version = event.v,
                         max_version_len = max_version_len
-                    )?
+                    )?;
+                    if with_colors {
+                        writeln!(stdout, "{reset}", reset = color::Fg(color::Reset))?
+                    } else {
+                        writeln!(stdout, "")?
+                    }
                 }
             }
         }
