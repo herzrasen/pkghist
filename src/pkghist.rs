@@ -122,12 +122,9 @@ fn format_plain<W: std::io::Write>(
     for package_history in package_histories {
         if with_colors {
             // check if last event is a removal
-            if let Some(last_event) = package_history.e.last() {
-                let last_action: Action = last_event.a.parse().unwrap();
-                match last_action {
-                    Action::Removed => write!(stdout, "{red}", red = color::Fg(color::Red))?,
-                    _ => write!(stdout, "{green}", green = color::Fg(color::Green))?,
-                }
+            match last_action(&package_history) {
+                Action::Removed => write!(stdout, "{red}", red = color::Fg(color::Red))?,
+                _ => write!(stdout, "{green}", green = color::Fg(color::Green))?,
             }
             writeln!(
                 stdout,
@@ -177,62 +174,93 @@ fn format_compact<W: std::io::Write>(
     with_colors: bool,
     without_details: bool,
 ) -> Result<(), Error> {
+    let max_package_name_len = max_len_package_name(&package_histories);
+    let max_date_len = max_len_date(&package_histories);
+    let max_action_len = max_len_action(&package_histories);
+    let max_version_len = max_len_version(&package_histories);
     for package_history in package_histories {
-        write!(stdout, "|")?;
-        match (with_colors, without_details) {
-            (true, true) => {
-                if let Some(last_event) = package_history.e.last() {
-                    let last_action: Action = last_event.a.parse().unwrap();
-                    match last_action {
+        for event in &package_history.e {
+            match (with_colors, without_details) {
+                (true, true) => {
+                    match event.a.parse().unwrap() {
                         Action::Removed => write!(stdout, "{red}", red = color::Fg(color::Red))?,
                         Action::Downgraded => {
                             write!(stdout, "{yellow}", yellow = color::Fg(color::Yellow))?
                         }
                         _ => write!(stdout, "{green}", green = color::Fg(color::Green))?,
                     }
+                    writeln!(
+                        stdout,
+                        "|{package}|{reset}",
+                        package = package_history.p,
+                        reset = color::Fg(color::Reset)
+                    )?
                 }
-                writeln!(
-                    stdout,
-                    "{package}{reset}|",
-                    package = package_history.p,
-                    reset = color::Fg(color::Reset)
-                )?
+                (false, true) => writeln!(stdout, "{package}|", package = package_history.p)?,
+                (true, false) => {
+                    match event.a.parse().unwrap() {
+                        Action::Removed => write!(stdout, "{red}", red = color::Fg(color::Red))?,
+                        Action::Downgraded => {
+                            write!(stdout, "{yellow}", yellow = color::Fg(color::Yellow))?
+                        }
+                        _ => write!(stdout, "{green}", green = color::Fg(color::Green))?,
+                    }
+                    writeln!(
+                        stdout,
+                        "|{package: <max_package_name_len$}|{date: <max_date_len$}|{action: <max_action_len$}|{version: <max_version_len$}|{reset}",
+                        package = package_history.p,
+                        max_package_name_len = max_package_name_len,
+                        date = event.d,
+                        max_date_len = max_date_len,
+                        action = event.a,
+                        max_action_len = max_action_len,
+                        version = event.v,
+                        max_version_len = max_version_len,
+                        reset = color::Fg(color::Reset)
+                    )?
+                }
+                (false, false) => {
+                    writeln!(
+                        stdout,
+                        "|{package: <max_package_name_len$}|{date: <max_date_len$}|{action: <max_action_len$}|{version: <max_version_len$}|",
+                        package = package_history.p,
+                        max_package_name_len = max_package_name_len,
+                        date = event.d,
+                        max_date_len = max_date_len,
+                        action = event.a,
+                        max_action_len = max_action_len,
+                        version = event.v,
+                        max_version_len = max_version_len
+                    )?
+                }
             }
-            (true, false) => {}
-            (false, true) => {}
-            (false, false) => {}
         }
-        // if !without_details {
-        //     for event in &package_history.e {
-        //         if with_colors {
-        //             if let Action::Removed = event.a.parse().unwrap() {
-        //                 write!(stdout, "{red}", red = color::Fg(color::Red))?
-        //             }
-        //             writeln!(
-        //                 stdout,
-        //                 "  [{date}] {action}",
-        //                 date = event.d,
-        //                 action = event.a,
-        //             )?;
-        //             writeln!(
-        //                 stdout,
-        //                 "    {version}{reset}",
-        //                 version = event.v,
-        //                 reset = color::Fg(color::Reset)
-        //             )?
-        //         } else {
-        //             writeln!(
-        //                 stdout,
-        //                 "  [{date}] {action}",
-        //                 date = event.d,
-        //                 action = event.a
-        //             )?;
-        //             writeln!(stdout, "    {version}", version = event.v)?
-        //         }
-        //     }
-        // }
     }
     Ok(())
+}
+
+fn max_len_package_name(package_histories: &[PackageHistory]) -> usize {
+    package_histories.iter().map(|p| p.p.len()).max().unwrap()
+}
+
+fn max_len_date(package_histories: &[PackageHistory]) -> usize {
+    let events: Vec<Event> = package_histories.iter().flat_map(|p| p.e.clone()).collect();
+    events.iter().map(|e| e.d.len()).max().unwrap()
+}
+
+fn max_len_action(package_histories: &[PackageHistory]) -> usize {
+    let events: Vec<Event> = package_histories.iter().flat_map(|p| p.e.clone()).collect();
+    events.iter().map(|e| e.a.len()).max().unwrap()
+}
+
+fn max_len_version(package_histories: &[PackageHistory]) -> usize {
+    let events: Vec<Event> = package_histories.iter().flat_map(|p| p.e.clone()).collect();
+    events.iter().map(|e| e.v.len()).max().unwrap()
+}
+
+fn last_action(package_history: &PackageHistory) -> Action {
+    let last_event = package_history.e.last().unwrap();
+    last_event.a.parse().unwrap()
 }
 
 trait Printer {
@@ -249,7 +277,6 @@ impl Printer for Format {
         stdout: &mut W,
         package_histories: &[PackageHistory],
     ) -> Result<(), Error> {
-        println!("self = {:?}", self);
         match *self {
             Format::Plain {
                 with_colors,

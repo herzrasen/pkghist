@@ -108,7 +108,7 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
 fn validate_gt_0(str: String) -> Result<(), String> {
     match str.parse::<u32>() {
         Ok(l) => {
-            if l > 1 {
+            if l > 0 {
                 Ok(())
             } else {
                 Err(String::from("limit must be greater than 0"))
@@ -232,7 +232,6 @@ impl Config {
         let format_from_matches: Format =
             matches.value_of("output-format").unwrap().parse().unwrap();
 
-        println!("output-format = {:?}", format_from_matches);
         let with_colors = if matches.is_present("no-colors") {
             false
         } else {
