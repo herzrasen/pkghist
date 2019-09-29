@@ -171,6 +171,70 @@ fn format_plain<W: std::io::Write>(
     Ok(())
 }
 
+fn format_compact<W: std::io::Write>(
+    stdout: &mut W,
+    package_histories: &[PackageHistory],
+    with_colors: bool,
+    without_details: bool,
+) -> Result<(), Error> {
+    for package_history in package_histories {
+        write!(stdout, "|")?;
+        match (with_colors, without_details) {
+            (true, true) => {
+                if let Some(last_event) = package_history.e.last() {
+                    let last_action: Action = last_event.a.parse().unwrap();
+                    match last_action {
+                        Action::Removed => write!(stdout, "{red}", red = color::Fg(color::Red))?,
+                        Action::Downgraded => {
+                            write!(stdout, "{yellow}", yellow = color::Fg(color::Yellow))?
+                        }
+                        _ => write!(stdout, "{green}", green = color::Fg(color::Green))?,
+                    }
+                }
+                writeln!(
+                    stdout,
+                    "{package}{reset}|",
+                    package = package_history.p,
+                    reset = color::Fg(color::Reset)
+                )?
+            }
+            (true, false) => {}
+            (false, true) => {}
+            (false, false) => {}
+        }
+        // if !without_details {
+        //     for event in &package_history.e {
+        //         if with_colors {
+        //             if let Action::Removed = event.a.parse().unwrap() {
+        //                 write!(stdout, "{red}", red = color::Fg(color::Red))?
+        //             }
+        //             writeln!(
+        //                 stdout,
+        //                 "  [{date}] {action}",
+        //                 date = event.d,
+        //                 action = event.a,
+        //             )?;
+        //             writeln!(
+        //                 stdout,
+        //                 "    {version}{reset}",
+        //                 version = event.v,
+        //                 reset = color::Fg(color::Reset)
+        //             )?
+        //         } else {
+        //             writeln!(
+        //                 stdout,
+        //                 "  [{date}] {action}",
+        //                 date = event.d,
+        //                 action = event.a
+        //             )?;
+        //             writeln!(stdout, "    {version}", version = event.v)?
+        //         }
+        //     }
+        // }
+    }
+    Ok(())
+}
+
 trait Printer {
     fn print<W: std::io::Write>(
         &self,
@@ -185,6 +249,7 @@ impl Printer for Format {
         stdout: &mut W,
         package_histories: &[PackageHistory],
     ) -> Result<(), Error> {
+        println!("self = {:?}", self);
         match *self {
             Format::Plain {
                 with_colors,
@@ -193,6 +258,10 @@ impl Printer for Format {
             Format::Json { without_details } => {
                 format_json(stdout, package_histories, without_details)
             }
+            Format::Compact {
+                with_colors,
+                without_details,
+            } => format_compact(stdout, package_histories, with_colors, without_details),
         }
     }
 }
