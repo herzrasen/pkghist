@@ -30,7 +30,7 @@ This will build `pkghist` and install it into your cargo bin directory (usually 
 
 ## Help
 ```bash
-pkghist 0.2.0
+pkghist 0.3.0
 Trace package versions from pacman's logfile
 
 USAGE:
@@ -50,7 +50,8 @@ OPTIONS:
         --last <n>                         Output the last 'n' pacman events
     -L, --limit <limit>                    How many versions to go back in report. [limit > 0]
     -l, --logfile <FILE>                   Specify a logfile [default: /var/log/pacman.log]
-    -o, --output-format <output-format>    Select the output format [default: plain]  [possible values: json, plain]
+    -o, --output-format <output-format>    Select the output format [default: plain]  [possible values: json, plain,
+                                           compact]
 
 ARGS:
     <filter>...    Filter the packages that should be searched for. Use regular expressions to specify the exact

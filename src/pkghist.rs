@@ -18,7 +18,10 @@ use termion::color;
 pub fn run(config: Config) -> Result<(), Error> {
     let logfile_path = &config.logfile;
     let pacman_events = pacman::from_file(Path::new(logfile_path))
-        .unwrap_or_else(|_| panic!("Unable to open {}", logfile_path));
+        .unwrap_or_else(|_| {
+            eprintln!("Unable to open {}", logfile_path);
+            std::process::exit(2)
+        });
 
     let groups = pacman_events.filter_packages(&config);
 
@@ -138,8 +141,12 @@ fn format_plain<W: std::io::Write>(
         if !without_details {
             for event in &package_history.e {
                 if with_colors {
-                    if let Action::Removed = event.a.parse().unwrap() {
-                        write!(stdout, "{red}", red = color::Fg(color::Red))?
+                    match event.a.parse().unwrap() {
+                        Action::Removed => write!(stdout, "{red}", red = color::Fg(color::Red))?,
+                        Action::Downgraded => {
+                            write!(stdout, "{yellow}", yellow = color::Fg(color::Yellow))?
+                        }
+                        _ => {}
                     }
                     writeln!(
                         stdout,
@@ -174,50 +181,57 @@ fn format_compact<W: std::io::Write>(
     with_colors: bool,
     without_details: bool,
 ) -> Result<(), Error> {
-    let max_package_name_len = max_len_package_name(&package_histories);
-    let max_date_len = max_len_date(&package_histories);
-    let max_action_len = max_len_action(&package_histories);
-    let max_version_len = max_len_version(&package_histories);
+    let (p_max, d_max, a_max, v_max) = max_lens(&package_histories);
     for package_history in package_histories {
         for event in &package_history.e {
             match (with_colors, without_details) {
-                (true, true) => {
-                    match event.a.parse().unwrap() {
-                        Action::Removed => write!(stdout, "{red}", red = color::Fg(color::Red))?,
-                        Action::Downgraded => {
-                            write!(stdout, "{yellow}", yellow = color::Fg(color::Yellow))?
-                        }
-                        _ => write!(stdout, "{green}", green = color::Fg(color::Green))?,
-                    }
-                    writeln!(
-                        stdout,
-                        "|{package}|{reset}",
-                        package = package_history.p,
-                        reset = color::Fg(color::Reset)
-                    )?
-                }
-                (false, true) => writeln!(stdout, "{package}|", package = package_history.p)?,
-                (with_colors, false) => {
+                (with_colors, true) => {
                     if with_colors {
-                                            match event.a.parse().unwrap() {
-                        Action::Removed => write!(stdout, "{red}", red = color::Fg(color::Red))?,
-                        Action::Downgraded => {
-                            write!(stdout, "{yellow}", yellow = color::Fg(color::Yellow))?
+                        match event.a.parse().unwrap() {
+                            Action::Removed => {
+                                write!(stdout, "{red}", red = color::Fg(color::Red))?
+                            }
+                            Action::Downgraded => {
+                                write!(stdout, "{yellow}", yellow = color::Fg(color::Yellow))?
+                            }
+                            _ => write!(stdout, "{green}", green = color::Fg(color::Green))?,
                         }
-                        _ => write!(stdout, "{green}", green = color::Fg(color::Green))?,
-                    }
                     }
                     write!(
                         stdout,
-                        "|{package: <max_package_name_len$}|{date: <max_date_len$}|{action: <max_action_len$}|{version: <max_version_len$}|",
+                        "|{package: <p_max$}|",
                         package = package_history.p,
-                        max_package_name_len = max_package_name_len,
+                        p_max = p_max
+                    )?;
+                    if with_colors {
+                        writeln!(stdout, "{reset}", reset = color::Fg(color::Reset))?
+                    } else {
+                        writeln!(stdout, "")?
+                    }
+                }
+                (with_colors, false) => {
+                    if with_colors {
+                        match event.a.parse().unwrap() {
+                            Action::Removed => {
+                                write!(stdout, "{red}", red = color::Fg(color::Red))?
+                            }
+                            Action::Downgraded => {
+                                write!(stdout, "{yellow}", yellow = color::Fg(color::Yellow))?
+                            }
+                            _ => write!(stdout, "{green}", green = color::Fg(color::Green))?,
+                        }
+                    }
+                    write!(
+                        stdout,
+                        "|{package: <p_max$}|{date: <d_max$}|{action: <a_max$}|{version: <v_max$}|",
+                        package = package_history.p,
+                        p_max = p_max,
                         date = event.d,
-                        max_date_len = max_date_len,
+                        d_max = d_max,
                         action = event.a,
-                        max_action_len = max_action_len,
+                        a_max = a_max,
                         version = event.v,
-                        max_version_len = max_version_len
+                        v_max = v_max
                     )?;
                     if with_colors {
                         writeln!(stdout, "{reset}", reset = color::Fg(color::Reset))?
@@ -231,23 +245,13 @@ fn format_compact<W: std::io::Write>(
     Ok(())
 }
 
-fn max_len_package_name(package_histories: &[PackageHistory]) -> usize {
-    package_histories.iter().map(|p| p.p.len()).max().unwrap()
-}
-
-fn max_len_date(package_histories: &[PackageHistory]) -> usize {
+fn max_lens(package_histories: &[PackageHistory]) -> (usize, usize, usize, usize) {
+    let p_max = package_histories.iter().map(|p| p.p.len()).max().unwrap();
     let events: Vec<Event> = package_histories.iter().flat_map(|p| p.e.clone()).collect();
-    events.iter().map(|e| e.d.len()).max().unwrap()
-}
-
-fn max_len_action(package_histories: &[PackageHistory]) -> usize {
-    let events: Vec<Event> = package_histories.iter().flat_map(|p| p.e.clone()).collect();
-    events.iter().map(|e| e.a.len()).max().unwrap()
-}
-
-fn max_len_version(package_histories: &[PackageHistory]) -> usize {
-    let events: Vec<Event> = package_histories.iter().flat_map(|p| p.e.clone()).collect();
-    events.iter().map(|e| e.v.len()).max().unwrap()
+    let d_max = events.iter().map(|e| e.d.len()).max().unwrap();
+    let a_max = events.iter().map(|e| e.a.len()).max().unwrap();
+    let v_max = events.iter().map(|e| e.v.len()).max().unwrap();
+    (p_max, d_max, a_max, v_max)
 }
 
 fn last_action(package_history: &PackageHistory) -> Action {
@@ -389,11 +393,23 @@ mod tests {
     fn should_print_to_stdout_colored() {
         let package_histories = vec![PackageHistory {
             p: String::from("foo"),
-            e: vec![Event {
-                a: String::from("Installed"),
-                v: String::from("0.0.1"),
-                d: String::from("2019-08-26 12:00:00"),
-            }],
+            e: vec![
+                Event {
+                    a: String::from("Upgraded"),
+                    v: String::from("0.0.2"),
+                    d: String::from("2019-08-26 12:00:00"),
+                },
+                Event {
+                    a: String::from("Downgraded"),
+                    v: String::from("0.0.1"),
+                    d: String::from("2019-08-26 13:00:00"),
+                },
+                Event {
+                    a: String::from("Removed"),
+                    v: String::from("0.0.1"),
+                    d: String::from("2019-08-26 14:00:00"),
+                },
+            ],
         }];
         let mut stdout = Vec::new();
         Format::Plain {
@@ -405,7 +421,7 @@ mod tests {
         let str = String::from_utf8(stdout).unwrap();
         assert_eq!(
             str,
-            "\u{1b}[38;5;2mfoo\u{1b}[39m\n  [2019-08-26 12:00:00] Installed\n    0.0.1\u{1b}[39m\n"
+            "\u{1b}[38;5;1mfoo\u{1b}[39m\n  [2019-08-26 12:00:00] Upgraded\n    0.0.2\u{1b}[39m\n\u{1b}[38;5;3m  [2019-08-26 13:00:00] Downgraded\n    0.0.1\u{1b}[39m\n\u{1b}[38;5;1m  [2019-08-26 14:00:00] Removed\n    0.0.1\u{1b}[39m\n"
         )
     }
 
@@ -473,17 +489,218 @@ mod tests {
     }
 
     #[test]
+    fn should_print_compact_to_stdout() {
+        let package_histories = vec![PackageHistory {
+            p: String::from("foo"),
+            e: vec![
+                Event {
+                    a: String::from("Upgraded"),
+                    v: String::from("0.0.2"),
+                    d: String::from("2019-08-26 12:00:00"),
+                },
+                Event {
+                    a: String::from("Downgraded"),
+                    v: String::from("0.0.1"),
+                    d: String::from("2019-08-26 13:00:00"),
+                },
+                Event {
+                    a: String::from("Removed"),
+                    v: String::from("0.0.1"),
+                    d: String::from("2019-08-26 14:00:00"),
+                },
+            ],
+        }];
+        let mut stdout = Vec::new();
+        Format::Compact {
+            with_colors: true,
+            without_details: false,
+        }
+        .print(&mut stdout, &package_histories)
+        .unwrap();
+        let str = String::from_utf8(stdout).unwrap();
+        assert_eq!(
+            str,
+            "\u{1b}[38;5;2m|foo|2019-08-26 12:00:00|Upgraded  |0.0.2|\u{1b}[39m\n\
+             \u{1b}[38;5;3m|foo|2019-08-26 13:00:00|Downgraded|0.0.1|\u{1b}[39m\n\
+             \u{1b}[38;5;1m|foo|2019-08-26 14:00:00|Removed   |0.0.1|\u{1b}[39m\n"
+        )
+    }
+
+    #[test]
+    fn should_print_compact_to_stdout_no_colors() {
+        let package_histories = vec![PackageHistory {
+            p: String::from("foo"),
+            e: vec![Event {
+                a: String::from("Upgraded"),
+                v: String::from("0.0.2"),
+                d: String::from("2019-08-26 12:00:00"),
+            }],
+        }];
+        let mut stdout = Vec::new();
+        Format::Compact {
+            with_colors: false,
+            without_details: false,
+        }
+        .print(&mut stdout, &package_histories)
+        .unwrap();
+        let str = String::from_utf8(stdout).unwrap();
+        assert_eq!(str, "|foo|2019-08-26 12:00:00|Upgraded|0.0.2|\n")
+    }
+
+    #[test]
+    fn should_print_compact_to_stdout_no_details() {
+        let package_histories = vec![PackageHistory {
+            p: String::from("foo"),
+            e: vec![
+                Event {
+                    a: String::from("Installed"),
+                    v: String::from("0.0.2"),
+                    d: String::from("2019-08-26 12:00:00"),
+                },
+                Event {
+                    a: String::from("Downgraded"),
+                    v: String::from("0.0.1"),
+                    d: String::from("2019-08-26 13:00:00"),
+                },
+                Event {
+                    a: String::from("Removed"),
+                    v: String::from("0.0.1"),
+                    d: String::from("2019-08-26 14:00:00"),
+                },
+            ],
+        }];
+        let mut stdout = Vec::new();
+        Format::Compact {
+            with_colors: true,
+            without_details: true,
+        }
+        .print(&mut stdout, &package_histories)
+        .unwrap();
+        let str = String::from_utf8(stdout).unwrap();
+        assert_eq!(
+            str,
+            "\u{1b}[38;5;2m|foo|\u{1b}[39m\n\
+             \u{1b}[38;5;3m|foo|\u{1b}[39m\n\
+             \u{1b}[38;5;1m|foo|\u{1b}[39m\n"
+        )
+    }
+
+    #[test]
+    fn should_print_compact_to_stdout_no_details_no_colors() {
+        let package_histories = vec![PackageHistory {
+            p: String::from("foo"),
+            e: vec![Event {
+                a: String::from("Installed"),
+                v: String::from("0.0.1"),
+                d: String::from("2019-08-26 12:00:00"),
+            }],
+        }];
+        let mut stdout = Vec::new();
+        Format::Compact {
+            with_colors: false,
+            without_details: true,
+        }
+        .print(&mut stdout, &package_histories)
+        .unwrap();
+        let str = String::from_utf8(stdout).unwrap();
+        assert_eq!(str, "|foo|\n")
+    }
+
+    #[test]
+    fn should_get_max_lens() {
+        let package_histories = vec![
+            PackageHistory {
+                p: String::from("foo"),
+                e: vec![
+                    Event {
+                        a: String::from("Installed"),
+                        v: String::from("0.0.1"),
+                        d: String::from("2019-08-26 12:00:00"),
+                    },
+                    Event {
+                        a: String::from("Upgraded"),
+                        v: String::from("0.0.2"),
+                        d: String::from("2019-08-30 13:30:00"),
+                    },
+                ],
+            },
+            PackageHistory {
+                p: String::from("another"),
+                e: vec![
+                    Event {
+                        a: String::from("Installed"),
+                        v: String::from("1.0.1"),
+                        d: String::from("2019-08-27 12:00:00"),
+                    },
+                    Event {
+                        a: String::from("Upgraded"),
+                        v: String::from("1.0.2-deadbeef"),
+                        d: String::from("2019-09-01 13:30:00"),
+                    },
+                ],
+            },
+        ];
+        let (p_max, d_max, a_max, v_max) = max_lens(&package_histories);
+        assert_eq!(p_max, 7);
+        assert_eq!(d_max, 19);
+        assert_eq!(a_max, 9);
+        assert_eq!(v_max, 14)
+    }
+
+    #[test]
+    fn should_get_last_action_removed() {
+        let package_history = PackageHistory {
+            p: String::from("another"),
+            e: vec![
+                Event {
+                    a: String::from("Installed"),
+                    v: String::from("1.0.1"),
+                    d: String::from("2019-08-27 12:00:00"),
+                },
+                Event {
+                    a: String::from("Removed"),
+                    v: String::from("1.0.2-deadbeef"),
+                    d: String::from("2019-09-01 13:30:00"),
+                },
+            ],
+        };
+        let action = last_action(&package_history);
+        assert_eq!(action, Action::Removed)
+    }
+
+    #[test]
+    fn should_get_last_action_upgraded() {
+        let package_history = PackageHistory {
+            p: String::from("another"),
+            e: vec![
+                Event {
+                    a: String::from("Installed"),
+                    v: String::from("1.0.1"),
+                    d: String::from("2019-08-27 12:00:00"),
+                },
+                Event {
+                    a: String::from("Upgraded"),
+                    v: String::from("1.0.2-deadbeef"),
+                    d: String::from("2019-09-01 13:30:00"),
+                },
+            ],
+        };
+        let action = last_action(&package_history);
+        assert_eq!(action, Action::Upgraded)
+    }
+
+    #[test]
     fn should_be_ok_1() {
         let file_name = uuid::Uuid::new_v4().to_string();
         let mut file = File::create(&file_name).unwrap();
         writeln!(
             file,
-            "[2019-07-14 21:33] [PACMAN] synchronizing package lists
-[2019-07-14 21:33] [PACMAN] starting full system upgrade
-[2019-07-14 21:33] [ALPM] transaction started
-[2019-07-14 21:33] [ALPM] installed feh (3.1.3-1)
-[2019-07-14 21:33] [ALPM] upgraded libev (4.25-1 -> 4.27-1)
-[2019-07-14 21:33] [ALPM] upgraded iso-codes (4.2-1 -> 4.3-1)"
+            "[2019-07-14 21:33] [PACMAN] synchronizing package lists\n\
+             [2019-07-14 21:33] [PACMAN] starting full system upgrade\n\
+             [2019-07-14 21:33] [ALPM] transaction started\n\
+             [2019-07-14 21:33] [ALPM] installed feh (3.1.3-1)\n\
+             [2019-07-14 21:33] [ALPM] upgraded libev (4.25-1 -> 4.27-1)\n\
+             [2019-07-14 21:33] [ALPM] upgraded iso-codes (4.2-1 -> 4.3-1)"
         )
         .unwrap();
 
