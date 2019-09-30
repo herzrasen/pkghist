@@ -23,7 +23,7 @@ To build `pkghist` from source you need a `Rust` installation including it's bui
 Install it either using pacman or [follow the official install guide](https://www.rust-lang.org/tools/install).
 
 Once `Rust` and `Cargo` are up and running, simply use:
-```
+```bash
 cargo install --path .
 ```
 
@@ -61,46 +61,46 @@ ARGS:
 
 ## Usage
 ### List all installed packages ordered by install/upgrade date
-```
+```bash
 pkghist 
 ```
 
 ### List the last `n` installed / upgraded packages
-```
+```bash
 pkghist --last <n>
 ```
 
 ### Limit the number of versions per package
-```
+```bash
 pkghist --limit <n>
 ```
 
 ### Search for a package by exact name
-```
+```bash
 pkghist '^name$'
 ```
 
 This uses regex syntax to describe the pattern to search for.
 
 #### Example
-```
+```bash
 pkghist '^zsh$'
 ```
 This return only the package `zsh` and not for example `zsh-syntax-highlighting`.
 
 ### Search for all packages containing some string
-```
+```bash
 pkghist string
 ```
 
 #### Example
-```
+```bash
 pkghist zsh
 ```
 
 This returns the package `zsh` as well as for example `zsh-syntax-highlighting`.
 
 ### List the package names of all removed packages
-```
+```bash
 pkghist --no-details --removed-only
 ```
