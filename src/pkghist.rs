@@ -17,11 +17,10 @@ use termion::color;
 
 pub fn run(config: Config) -> Result<(), Error> {
     let logfile_path = &config.logfile;
-    let pacman_events = pacman::from_file(Path::new(logfile_path))
-        .unwrap_or_else(|_| {
-            eprintln!("Unable to open {}", logfile_path);
-            std::process::exit(2)
-        });
+    let pacman_events = pacman::from_file(Path::new(logfile_path)).unwrap_or_else(|_| {
+        eprintln!("Unable to open {}", logfile_path);
+        std::process::exit(2)
+    });
 
     let groups = pacman_events.filter_packages(&config);
 

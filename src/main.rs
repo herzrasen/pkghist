@@ -24,8 +24,8 @@ mod tests {
     use std::fs::File;
     use std::io::Write;
 
-    use filepath::FilePath;
     use super::*;
+    use filepath::FilePath;
 
     #[test]
     fn should_run() {
