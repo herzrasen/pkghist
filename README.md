@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/herzrasen/pkghist.svg?branch=master)](https://travis-ci.org/herzrasen/pkghist)
 [![codecov](https://codecov.io/gh/herzrasen/pkghist/branch/master/graph/badge.svg)](https://codecov.io/gh/herzrasen/pkghist)
+[![pkghist](https://img.shields.io/aur/version/pkghist.svg?label=pkghist)](https://aur.archlinux.org/packages/pkghist/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/herzrasen/pkghist/blob/master/LICENSE)
 
 # pkghist
@@ -22,7 +23,7 @@ To build `pkghist` from source you need a `Rust` installation including it's bui
 Install it either using pacman or [follow the official install guide](https://www.rust-lang.org/tools/install).
 
 Once `Rust` and `Cargo` are up and running, simply use:
-```
+```bash
 cargo install --path .
 ```
 
@@ -30,7 +31,7 @@ This will build `pkghist` and install it into your cargo bin directory (usually 
 
 ## Help
 ```bash
-pkghist 0.2.0
+pkghist 0.3.0
 Trace package versions from pacman's logfile
 
 USAGE:
@@ -50,7 +51,8 @@ OPTIONS:
         --last <n>                         Output the last 'n' pacman events
     -L, --limit <limit>                    How many versions to go back in report. [limit > 0]
     -l, --logfile <FILE>                   Specify a logfile [default: /var/log/pacman.log]
-    -o, --output-format <output-format>    Select the output format [default: plain]  [possible values: json, plain]
+    -o, --output-format <output-format>    Select the output format [default: plain]  [possible values: json, plain,
+                                           compact]
 
 ARGS:
     <filter>...    Filter the packages that should be searched for. Use regular expressions to specify the exact
@@ -59,46 +61,46 @@ ARGS:
 
 ## Usage
 ### List all installed packages ordered by install/upgrade date
-```
+```bash
 pkghist 
 ```
 
 ### List the last `n` installed / upgraded packages
-```
+```bash
 pkghist --last <n>
 ```
 
 ### Limit the number of versions per package
-```
+```bash
 pkghist --limit <n>
 ```
 
 ### Search for a package by exact name
-```
+```bash
 pkghist '^name$'
 ```
 
 This uses regex syntax to describe the pattern to search for.
 
 #### Example
-```
+```bash
 pkghist '^zsh$'
 ```
 This return only the package `zsh` and not for example `zsh-syntax-highlighting`.
 
 ### Search for all packages containing some string
-```
+```bash
 pkghist string
 ```
 
 #### Example
-```
+```bash
 pkghist zsh
 ```
 
 This returns the package `zsh` as well as for example `zsh-syntax-highlighting`.
 
 ### List the package names of all removed packages
-```
+```bash
 pkghist --no-details --removed-only
 ```

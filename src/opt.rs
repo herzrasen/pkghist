@@ -17,7 +17,7 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
                 .short("o")
                 .long("output-format")
                 .takes_value(true)
-                .possible_values(&[&"json", &"plain"])
+                .possible_values(&[&"json", &"plain", &"compact"])
                 .default_value("plain")
                 .help("Select the output format"),
         )
@@ -108,7 +108,7 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
 fn validate_gt_0(str: String) -> Result<(), String> {
     match str.parse::<u32>() {
         Ok(l) => {
-            if l > 1 {
+            if l > 0 {
                 Ok(())
             } else {
                 Err(String::from("limit must be greater than 0"))
@@ -136,6 +136,10 @@ pub enum Format {
     Json {
         without_details: bool,
     },
+    Compact {
+        with_colors: bool,
+        without_details: bool,
+    },
 }
 
 impl FromStr for Format {
@@ -149,6 +153,11 @@ impl FromStr for Format {
             })
         } else if format_str == "plain" {
             Ok(Format::Plain {
+                with_colors: true,
+                without_details: false,
+            })
+        } else if format_str == "compact" {
+            Ok(Format::Compact {
                 with_colors: true,
                 without_details: false,
             })
@@ -235,17 +244,16 @@ impl Config {
             false
         };
 
-        let format = if format_from_matches
-            == (Format::Plain {
-                with_colors: true,
-                without_details: false,
-            }) {
-            Format::Plain {
+        let format = match format_from_matches {
+            Format::Plain { .. } => Format::Plain {
                 with_colors,
                 without_details,
-            }
-        } else {
-            Format::Json { without_details }
+            },
+            Format::Compact { .. } => Format::Compact {
+                with_colors,
+                without_details,
+            },
+            Format::Json { .. } => Format::Json { without_details },
         };
 
         let limit = match matches.value_of("limit") {
@@ -354,6 +362,32 @@ mod tests {
         assert_eq!(
             format.unwrap(),
             Format::Json {
+                without_details: false
+            }
+        )
+    }
+
+    #[test]
+    fn should_parse_format_compact() {
+        let format: Result<Format, Error> = "compact".parse();
+        assert!(format.is_ok());
+        assert_eq!(
+            format.unwrap(),
+            Format::Compact {
+                with_colors: true,
+                without_details: false
+            }
+        )
+    }
+
+    #[test]
+    fn should_parse_format_compact_ignore_case() {
+        let format: Result<Format, Error> = "CoMpAcT".parse();
+        assert!(format.is_ok());
+        assert_eq!(
+            format.unwrap(),
+            Format::Compact {
+                with_colors: true,
                 without_details: false
             }
         )
