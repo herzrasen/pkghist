@@ -83,11 +83,8 @@ pub struct PackageHistory {
 }
 
 impl PackageHistory {
-    fn new(package: String, events: Vec<Event>) -> PackageHistory {
-        PackageHistory {
-            p: package,
-            e: events,
-        }
+    fn new(p: String, e: Vec<Event>) -> PackageHistory {
+        PackageHistory { p, e }
     }
 
     fn from_pacman_events(pacman_events: Vec<&PacmanEvent>) -> PackageHistory {

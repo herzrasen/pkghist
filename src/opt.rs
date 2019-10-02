@@ -229,9 +229,6 @@ impl Config {
             None => Vec::new(),
         };
 
-        let format_from_matches: Format =
-            matches.value_of("output-format").unwrap().parse().unwrap();
-
         let with_colors = if matches.is_present("no-colors") {
             false
         } else {
@@ -244,7 +241,7 @@ impl Config {
             false
         };
 
-        let format = match format_from_matches {
+        let format = match matches.value_of("output-format").unwrap().parse().unwrap() {
             Format::Plain { .. } => Format::Plain {
                 with_colors,
                 without_details,
@@ -315,6 +312,18 @@ mod tests {
     fn should_not_validate_gt_0() {
         let r = validate_gt_0(String::from("0"));
         assert_eq!(r.is_err(), true)
+    }
+
+    #[test]
+    fn should_validate_date() {
+        let d = validate_date(String::from("2019-10-02 12:30"));
+        assert_eq!(d.is_ok(), true)
+    }
+
+    #[test]
+    fn should_not_validate_date() {
+        let d = validate_date(String::from("20191002 1230"));
+        assert_eq!(d.is_err(), true)
     }
 
     #[test]
@@ -400,7 +409,7 @@ mod tests {
         assert_eq!(
             format.err().unwrap(),
             Error::new(ErrorDetail::InvalidFormat)
-        );
+        )
     }
 
     #[test]
@@ -415,6 +424,23 @@ mod tests {
             config.format,
             Format::Plain {
                 with_colors: true,
+                without_details: false
+            }
+        )
+    }
+
+    #[test]
+    fn should_create_config_from_args_no_colors() {
+        let matches = parse_args(&[String::from("pkghist"), String::from("--no-colors")]);
+        let config = Config::from_arg_matches(&matches);
+        assert_eq!(config.logfile, "/var/log/pacman.log");
+        assert_eq!(config.filters.is_empty(), true);
+        assert_eq!(config.with_removed, false);
+        assert_eq!(config.removed_only, false);
+        assert_eq!(
+            config.format,
+            Format::Plain {
+                with_colors: false,
                 without_details: false
             }
         )
@@ -475,6 +501,41 @@ mod tests {
         assert_eq!(
             config.format,
             Format::Json {
+                without_details: true
+            }
+        )
+    }
+
+    #[test]
+    fn should_create_config_from_args_format_compact() {
+        let matches = parse_args(&[
+            String::from("pkghist"),
+            String::from("--output-format"),
+            String::from("compact"),
+        ]);
+        let config = Config::from_arg_matches(&matches);
+        assert_eq!(
+            config.format,
+            Format::Compact {
+                with_colors: true,
+                without_details: false
+            }
+        )
+    }
+
+    #[test]
+    fn should_create_config_from_args_format_compact_no_details() {
+        let matches = parse_args(&[
+            String::from("pkghist"),
+            String::from("--output-format"),
+            String::from("compact"),
+            String::from("--no-details"),
+        ]);
+        let config = Config::from_arg_matches(&matches);
+        assert_eq!(
+            config.format,
+            Format::Compact {
+                with_colors: true,
                 without_details: true
             }
         )
