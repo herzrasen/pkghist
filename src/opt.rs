@@ -229,17 +229,9 @@ impl Config {
             None => Vec::new(),
         };
 
-        let with_colors = if matches.is_present("no-colors") {
-            false
-        } else {
-            true
-        };
+        let with_colors = !matches.is_present("no-colors");
 
-        let without_details = if matches.is_present("no-details") {
-            true
-        } else {
-            false
-        };
+        let without_details = matches.is_present("no-details");
 
         let format = match matches.value_of("output-format").unwrap().parse().unwrap() {
             Format::Plain { .. } => Format::Plain {
