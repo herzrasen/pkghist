@@ -111,7 +111,7 @@ fn format_compact<W: std::io::Write>(
                     if with_colors {
                         writeln!(stdout, "{reset}", reset = color::Fg(color::Reset))?
                     } else {
-                        writeln!(stdout, "")?
+                        writeln!(stdout)?
                     }
                 }
                 (with_colors, false) => {

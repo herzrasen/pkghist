@@ -60,7 +60,8 @@ impl Filter for Vec<PacmanEvent> {
         for (package, events) in packages {
             let filtered_events = filter_events(events.clone(), &config.after);
             if !filtered_events.is_empty()
-                && (config.filters.is_empty() || matches_filter(package, &config.filters))
+                && (config.filters.is_empty()
+                    || matches_filter(package, config.exclude, &config.filters))
             {
                 filtered_packages.insert(package, filtered_events);
             }
@@ -73,8 +74,16 @@ impl Filter for Vec<PacmanEvent> {
     }
 }
 
-fn matches_filter(package: &str, filters: &[Regex]) -> bool {
-    filters.iter().any(|f| f.is_match(package))
+/*
+ * - if exclude is false -> any filter must match
+ * - if exclude is true -> all filters must match
+ */
+fn matches_filter(package: &str, exclude: bool, filters: &[Regex]) -> bool {
+    if !exclude {
+        filters.iter().any(|f| f.is_match(package))
+    } else {
+        filters.iter().all(|f| !f.is_match(package))
+    }
 }
 
 fn filter_events<'a>(
@@ -133,8 +142,17 @@ mod tests {
         let regex = Regex::new("^linux").unwrap();
         let mut filters = Vec::new();
         filters.push(regex);
-        assert!(matches_filter("linux", &filters));
-        assert_eq!(matches_filter("utils-linux", &filters), false)
+        assert!(matches_filter("linux", false, &filters));
+        assert_eq!(matches_filter("utils-linux", false, &filters), false)
+    }
+
+    #[test]
+    fn should_exclude_package_starting_with() {
+        let regex = Regex::new("^linux").unwrap();
+        let mut filters = Vec::new();
+        filters.push(regex);
+        assert_eq!(matches_filter("linux", true, &filters), false);
+        assert_eq!(matches_filter("utils-linux", true, &filters), true)
     }
 
     #[test]
@@ -198,8 +216,44 @@ mod tests {
             .unwrap_or_else(|_| panic!("Unable to open {}", &file_name));
 
         let groups = pacman_events.filter_packages(&config);
-        println!("{:?}", groups);
         assert_eq!(groups.keys().len(), 2);
+        fs::remove_file(file.path().unwrap()).unwrap()
+    }
+
+    #[test]
+    fn should_filter_packages_when_exclude_matches_filters() {
+        let file_name = uuid::Uuid::new_v4().to_string();
+        let mut file = File::create(&file_name).unwrap();
+        writeln!(
+            file,
+            "[2019-06-23 21:09] [ALPM] upgraded linux (5.1.12.arch1-1 -> 5.1.14.arch1-1)
+[2019-06-26 12:48] [ALPM] upgraded linux (5.1.14.arch1-1 -> 5.1.15.arch1-1)
+[2019-07-08 01:01] [ALPM] upgraded linux-firmware (20190618.acb56f2-1 -> 20190628.70e4394-1)
+[2019-07-08 01:01] [ALPM] upgraded linux (5.1.15.arch1-1 -> 5.1.16.arch1-1)
+[2019-07-11 22:08] [ALPM] upgraded linux (5.1.16.arch1-1 -> 5.2.arch2-1)
+[2019-07-16 21:09] [ALPM] upgraded linux (5.2.arch2-1 -> 5.2.1.arch1-1)
+[2019-03-03 10:02] [ALPM] installed bash (5.0.0-1)
+[2019-03-16 12:57] [ALPM] upgraded bash (5.0.0-1 -> 5.0.002-1)
+[2019-04-14 21:51] [ALPM] upgraded bash (5.0.002-1 -> 5.0.003-1)
+[2019-05-10 12:45] [ALPM] upgraded bash (5.0.003-1 -> 5.0.007-1)"
+        )
+        .unwrap();
+
+        let mut filters: Vec<Regex> = Vec::new();
+        filters.push(Regex::new("-firmware$").unwrap());
+        filters.push(Regex::new("^b").unwrap());
+
+        let mut config = Config::new();
+        config.logfile = file_name.clone();
+        config.exclude = true;
+        config.filters = filters;
+
+        let pacman_events = pacman::from_file(Path::new(&file_name))
+            .unwrap_or_else(|_| panic!("Unable to open {}", &file_name));
+
+        let groups = pacman_events.filter_packages(&config);
+        assert_eq!(groups.keys().len(), 1);
+        assert_eq!(groups.contains_key(&String::from("linux")), true);
         fs::remove_file(file.path().unwrap()).unwrap()
     }
 
@@ -235,7 +289,6 @@ mod tests {
             .unwrap_or_else(|_| panic!("Unable to open {}", &file_name));
 
         let groups = pacman_events.filter_packages(&config);
-        println!("{:?}", groups);
         assert_eq!(groups.keys().len(), 1);
         fs::remove_file(file.path().unwrap()).unwrap()
     }

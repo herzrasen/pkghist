@@ -96,6 +96,13 @@ pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name("exclude")
+                .long("exclude")
+                .short("x")
+                .takes_value(false)
+                .help("If set, every filter result will be excluded.")
+        )
+        .arg(
             Arg::with_name("filter")
                 .help("Filter the packages that should be searched for. \
                 Use regular expressions to specify the exact pattern to match \
@@ -184,6 +191,7 @@ impl Direction {
 }
 
 pub struct Config {
+    pub exclude: bool,
     pub removed_only: bool,
     pub with_removed: bool,
     pub logfile: String,
@@ -197,6 +205,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Config {
         Config {
+            exclude: false,
             removed_only: false,
             with_removed: false,
             logfile: String::from("/var/log/pacman.log"),
@@ -271,6 +280,7 @@ impl Config {
         };
 
         Config {
+            exclude: matches.is_present("exclude"),
             removed_only: matches.is_present("removed-only"),
             with_removed: matches.is_present("with-removed"),
             logfile: String::from(matches.value_of("logfile").unwrap()),
@@ -410,6 +420,7 @@ mod tests {
         let config = Config::from_arg_matches(&matches);
         assert_eq!(config.logfile, "/var/log/pacman.log");
         assert_eq!(config.filters.is_empty(), true);
+        assert_eq!(config.exclude, false);
         assert_eq!(config.with_removed, false);
         assert_eq!(config.removed_only, false);
         assert_eq!(
@@ -419,6 +430,14 @@ mod tests {
                 without_details: false
             }
         )
+    }
+
+    #[test]
+    fn should_create_config_from_args_exclude() {
+        let matches = parse_args(&[String::from("pkghist"), String::from("--exclude"), String::from("^lib")]);
+        let config = Config::from_arg_matches(&matches);
+        assert_eq!(config.filters.is_empty(), false);
+        assert_eq!(config.exclude, true)
     }
 
     #[test]
