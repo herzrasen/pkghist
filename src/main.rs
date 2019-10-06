@@ -1,7 +1,6 @@
-use crate::error::{Error, ErrorDetail};
-use crate::opt::cli;
+use crate::error::Error;
 use std::env;
-use std::io;
+
 pub mod error;
 pub mod opt;
 pub mod pacman;
@@ -14,25 +13,8 @@ fn main() -> Result<(), Error> {
 
 fn run(args: Vec<String>) -> Result<(), Error> {
     let matches = opt::parse_args(&args);
-
-    if matches.is_present("completions") {
-        generate_completions(matches.value_of("completions").unwrap(), &mut io::stdout())
-    } else {
-        let config = opt::Config::from_arg_matches(&matches);
-        pkghist::run(config)
-    }
-}
-
-fn generate_completions<W: std::io::Write>(shell: &str, stdout: &mut W) -> Result<(), Error> {
-    match shell.parse() {
-        Ok(s) => {
-            cli::build_cli().gen_completions_to(env!("CARGO_PKG_NAME"), s, stdout);
-            Ok(())
-        }
-        Err(e) => Err(Error::new(ErrorDetail::IOError {
-            msg: format!("{:?}", e),
-        })),
-    }
+    let config = opt::Config::from_arg_matches(&matches);
+    pkghist::run(config)
 }
 
 #[cfg(test)]
@@ -65,59 +47,5 @@ mod tests {
         assert_eq!(r.is_ok(), true);
 
         fs::remove_file(file.path().unwrap()).unwrap()
-    }
-
-    #[test]
-    fn should_run_completions() {
-        let args = vec![
-            String::from("pkghist"),
-            String::from("--completions"),
-            String::from("zsh"),
-        ];
-        let r = run(args);
-
-        assert_eq!(r.is_ok(), true)
-    }
-
-    #[test]
-    fn should_create_completions_for_bash() {
-        let mut stdout = Vec::new();
-        let r = generate_completions("bash", &mut stdout);
-
-        assert_eq!(r.is_ok(), true);
-
-        let str = String::from_utf8(stdout).unwrap();
-        assert_eq!(str.starts_with("_pkghist() {\n"), true);
-        assert_eq!(str.contains("esac"), true)
-    }
-
-    #[test]
-    fn should_create_completions_for_zsh() {
-        let mut stdout = Vec::new();
-        let r = generate_completions("zsh", &mut stdout);
-
-        assert_eq!(r.is_ok(), true);
-
-        let str = String::from_utf8(stdout).unwrap();
-        assert_eq!(str.starts_with("#compdef pkghist\n"), true)
-    }
-
-    #[test]
-    fn should_create_completions_for_fish() {
-        let mut stdout = Vec::new();
-        let r = generate_completions("fish", &mut stdout);
-
-        assert_eq!(r.is_ok(), true);
-
-        let str = String::from_utf8(stdout).unwrap();
-        assert_eq!(str.contains("__fish_use_subcommand"), true)
-    }
-
-    #[test]
-    fn should_fail_to_create_completions() {
-        let mut stdout = Vec::new();
-        let r = generate_completions("nosh", &mut stdout);
-
-        assert_eq!(r.is_err(), true)
     }
 }

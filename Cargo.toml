@@ -8,6 +8,7 @@ repository = "https://github.com/herzrasen/pkghist"
 readme = "README.md"
 keywords = ["pacman", "arch", "pkg", "arch-linux"]
 license-file = "LICENSE"
+build = "build.rs"
 
 [dependencies]
 clap = "2"
@@ -20,3 +21,8 @@ lazy_static = "1"
 itertools = "0"
 uuid = { version = "0.7", features = ["v4"]}
 filepath = "0"
+
+[build-dependencies]
+clap = "*"
+regex = "1"
+chrono = "*"

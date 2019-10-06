@@ -1,0 +1,13 @@
+complete -c pkghist -n "__fish_use_subcommand" -s o -l output-format -d 'Select the output format' -r -f -a "json plain compact"
+complete -c pkghist -n "__fish_use_subcommand" -s l -l logfile -d 'Specify a logfile'
+complete -c pkghist -n "__fish_use_subcommand" -s L -l limit -d 'How many versions to go back in report. [limit > 0]'
+complete -c pkghist -n "__fish_use_subcommand" -l first -d 'Output the first \'n\' pacman events'
+complete -c pkghist -n "__fish_use_subcommand" -l last -d 'Output the last \'n\' pacman events'
+complete -c pkghist -n "__fish_use_subcommand" -s a -l after -d 'Only consider events that occurred after \'date\' [Format: "YYYY-MM-DD HH:MM"]'
+complete -c pkghist -n "__fish_use_subcommand" -s r -l with-removed -d 'Include packages that are currently uninstalled'
+complete -c pkghist -n "__fish_use_subcommand" -s R -l removed-only -d 'Only output packages that are currently uninstalled'
+complete -c pkghist -n "__fish_use_subcommand" -l no-colors -d 'Disable colored output'
+complete -c pkghist -n "__fish_use_subcommand" -l no-details -d 'Only output the package names'
+complete -c pkghist -n "__fish_use_subcommand" -s x -l exclude -d 'If set, every filter result will be excluded.'
+complete -c pkghist -n "__fish_use_subcommand" -s h -l help -d 'Prints help information'
+complete -c pkghist -n "__fish_use_subcommand" -s V -l version -d 'Prints version information'

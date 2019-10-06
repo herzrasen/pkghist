@@ -6,26 +6,6 @@ pub fn build_cli() -> App<'static, 'static> {
         .version(env!("CARGO_PKG_VERSION"))
         .about("Trace package versions from pacman's logfile")
         .arg(
-            Arg::with_name("completions")
-                .long("--completions")
-                .takes_value(true)
-                .possible_values(&[&"bash",&"fish",&"zsh"])
-                .help("Generate a completion script for the selected shell and output it to stdout")
-                .conflicts_with_all(&[
-                    &"output-format",
-                    &"logfile",
-                    &"with-removed",
-                    &"removed-only",
-                    &"limit",
-                    &"no-colors",
-                    &"no-details",
-                    &"first",
-                    &"last",
-                    &"exclude",
-                    &"filter"
-                ])
-        )
-        .arg(
             Arg::with_name("output-format")
                 .short("o")
                 .long("output-format")

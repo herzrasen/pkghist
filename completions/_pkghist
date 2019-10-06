@@ -1,0 +1,53 @@
+#compdef pkghist
+
+autoload -U is-at-least
+
+_pkghist() {
+    typeset -A opt_args
+    typeset -a _arguments_options
+    local ret=1
+
+    if is-at-least 5.2; then
+        _arguments_options=(-s -S -C)
+    else
+        _arguments_options=(-s -C)
+    fi
+
+    local context curcontext="$curcontext" state line
+    _arguments "${_arguments_options[@]}" \
+'-o+[Select the output format]: :(json plain compact)' \
+'--output-format=[Select the output format]: :(json plain compact)' \
+'-l+[Specify a logfile]' \
+'--logfile=[Specify a logfile]' \
+'-L+[How many versions to go back in report. \[limit > 0\]]' \
+'--limit=[How many versions to go back in report. \[limit > 0\]]' \
+'(--last)--first=[Output the first '\''n'\'' pacman events]' \
+'--last=[Output the last '\''n'\'' pacman events]' \
+'-a+[Only consider events that occurred after '\''date'\'' \[Format: "YYYY-MM-DD HH:MM"\]]' \
+'--after=[Only consider events that occurred after '\''date'\'' \[Format: "YYYY-MM-DD HH:MM"\]]' \
+'(-R --removed-only)-r[Include packages that are currently uninstalled]' \
+'(-R --removed-only)--with-removed[Include packages that are currently uninstalled]' \
+'(-r --with-removed)-R[Only output packages that are currently uninstalled]' \
+'(-r --with-removed)--removed-only[Only output packages that are currently uninstalled]' \
+'--no-colors[Disable colored output]' \
+'--no-details[Only output the package names]' \
+'-x[If set, every filter result will be excluded.]' \
+'--exclude[If set, every filter result will be excluded.]' \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+'::filter -- Filter the packages that should be searched for. Use regular expressions to specify the exact pattern to match (e.g. '^linux$' only matches the package 'linux':_files' \
+&& ret=0
+    
+}
+
+(( $+functions[_pkghist_commands] )) ||
+_pkghist_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'pkghist commands' commands "$@"
+}
+
+_pkghist "$@"
