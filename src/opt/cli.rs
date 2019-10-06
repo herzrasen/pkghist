@@ -99,7 +99,7 @@ pub fn build_cli() -> App<'static, 'static> {
             Arg::with_name("filter")
                 .help("Filter the packages that should be searched for. \
                 Use regular expressions to specify the exact pattern to match \
-                (e.g. '^linux$' only matches the package 'linux'")
+                (e.g. '^linux$' only matches the package 'linux')")
                 .multiple(true),
         )
 }

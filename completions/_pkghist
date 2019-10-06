@@ -37,7 +37,7 @@ _pkghist() {
 '--help[Prints help information]' \
 '-V[Prints version information]' \
 '--version[Prints version information]' \
-'::filter -- Filter the packages that should be searched for. Use regular expressions to specify the exact pattern to match (e.g. '^linux$' only matches the package 'linux':_files' \
+'::filter -- Filter the packages that should be searched for. Use regular expressions to specify the exact pattern to match (e.g. '^linux$' only matches the package 'linux'):_files' \
 && ret=0
     
 }

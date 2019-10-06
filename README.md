@@ -31,13 +31,14 @@ This will build `pkghist` and install it into your cargo bin directory (usually 
 
 ## Help
 ```bash
-pkghist 0.3.0
+pkghist 0.4.0
 Trace package versions from pacman's logfile
 
 USAGE:
     pkghist [FLAGS] [OPTIONS] [filter]...
 
 FLAGS:
+    -x, --exclude         If set, every filter result will be excluded.
     -h, --help            Prints help information
         --no-colors       Disable colored output
         --no-details      Only output the package names
@@ -56,7 +57,7 @@ OPTIONS:
 
 ARGS:
     <filter>...    Filter the packages that should be searched for. Use regular expressions to specify the exact
-                   pattern to match (e.g. '^linux$' only matches the package 'linux'
+                   pattern to match (e.g. '^linux$' only matches the package 'linux')
 ```
 
 ## Usage
@@ -129,8 +130,23 @@ This is a little collection of useful regexes that can be used for filtering.
 
 Sometimes using `--exclude` is easier than trying to create an exclusion regex. 
 
+## Using pkghist's output as input for pacman
+You can use the result of a `pkghist` query as input for pacman.
+
+To create an output in the matching format, use the `--no-colors` and the `--no-details' options in your query. 
+
+The following command installs all packages that have been removed after 2019-10-01 12:00. 
+```bash
+sudo pacman -S $(pkghist --no-details --no-colors --removed-only --after "2019-10-01 12:00")                                             
+```
+
+The following command removes all packages that have been installed after 2019-10-02 12:00. 
+```bash
+sudo pacman -R $(pkghist --no-details --no-colors --after "2019-10-02 12:00")                                                            
+```
+
 ## Shell completions
 `pkghist` creates completion scripts for `bash`, `fish` and `zsh`.
-They are created at build time using the great [clap library](https://github.com/clap-rs/clap). 
+They are created at build time using the great [clap crate](https://github.com/clap-rs/clap). 
 When installing using `makepkg` (e.g. using the AUR), they are put into the appropriate location.
 When installing manually, you may copy them from [the completions directory](./completions) into the appropriate location.
