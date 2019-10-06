@@ -90,17 +90,47 @@ This return only the package `zsh` and not for example `zsh-syntax-highlighting`
 
 ### Search for all packages containing some string
 ```bash
-pkghist string
+pkghist somestring
 ```
 
 #### Example
 ```bash
 pkghist zsh
 ```
-
 This returns the package `zsh` as well as for example `zsh-syntax-highlighting`.
+
+### Excluding packages
+```bash
+pkghist --exclude somestring
+```
+
+#### Example
+```bash
+pkghist --exclude '^[a-e]'
+```
+This excludes all packages starting with the letters a to e.
 
 ### List the package names of all removed packages
 ```bash
 pkghist --no-details --removed-only
 ```
+
+## Regex examples
+This is a little collection of useful regexes that can be used for filtering.
+
+| Regex          | Explanation                                              |
+|----------------|----------------------------------------------------------|
+| `'^package$'`  | Matches only packages named 'package'                    |
+| `'package'`    | Matches any package containing 'package'                 |  
+| `'^[a-x]'`     | Matches any package starting with the letters 'a' to 'x' |
+| `'[a-x]'`      | Matches any package containing the letter 'a' to 'x'     |
+| `'[^a-x]'`     | Matches any package NOT containing the letters 'a' to 'x'| 
+| `'[[:digit:]]'`| Matches any package containing a digit                   |
+
+Sometimes using `--exclude` is easier than trying to create an exclusion regex. 
+
+## Shell completions
+`pkghist` creates completion scripts for `bash`, `fish` and `zsh`.
+They are created at build time using the great [clap library](https://github.com/clap-rs/clap). 
+When installing using `makepkg` (e.g. using the AUR), they are put into the appropriate location.
+When installing manually, you may copy them from [the completions directory](./completions) into the appropriate location.
