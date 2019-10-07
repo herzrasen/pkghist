@@ -150,3 +150,8 @@ sudo pacman -R $(pkghist --no-details --no-colors --after "2019-10-02 12:00")
 They are created at build time using the great [clap crate](https://github.com/clap-rs/clap). 
 When installing using `makepkg` (e.g. using the AUR), they are put into the appropriate location.
 When installing manually, you may copy them from [the completions directory](./completions) into the appropriate location.
+
+Note: When using zsh, enable loading of additional completions by adding the following line to your `.zshrc`
+```bash
+autoload -U compinit && compinit
+```
