@@ -19,7 +19,7 @@ pub mod newest;
 pub mod range;
 
 lazy_static! {
-    static ref REGEX: Regex = Regex::new(r"^\[(?P<date>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2})\]\s\[.+\]\s(?P<action>upgraded|installed|removed|reinstalled|downgraded)\s(?P<package>.+)\s\((?P<from>.+?)(\s->\s(?P<to>.+))?\)").unwrap();
+    static ref REGEX: Regex = Regex::new(r"^\[(?P<date>(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4}))\]\s\[.+\]\s(?P<action>upgraded|installed|removed|reinstalled|downgraded)\s(?P<package>.+)\s\((?P<from>.+?)(\s->\s(?P<to>.+))?\)").unwrap();
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
