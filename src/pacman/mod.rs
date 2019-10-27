@@ -4,7 +4,9 @@ use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::str::FromStr;
 
+use chrono::DateTime;
 use chrono::NaiveDateTime;
+
 use lazy_static::*;
 use regex::*;
 use std::error::Error as StdError;
@@ -80,11 +82,7 @@ impl FromStr for PacmanEvent {
         if REGEX.is_match(s) {
             match REGEX.captures(s) {
                 Some(captures) => {
-                    let date = NaiveDateTime::parse_from_str(
-                        captures.name("date").unwrap().as_str(),
-                        "%Y-%m-%d %H:%M",
-                    )
-                    .unwrap();
+                    let date = parse_date(captures.name("date").unwrap().as_str());
                     let action =
                         Action::from_str(captures.name("action").unwrap().as_str()).unwrap();
                     let package = String::from(captures.name("package").unwrap().as_str());
@@ -99,6 +97,17 @@ impl FromStr for PacmanEvent {
             }
         } else {
             Err(Error::new(ErrorDetail::InvalidFormat))
+        }
+    }
+}
+
+fn parse_date(date_str: &str) -> NaiveDateTime {
+    let d = NaiveDateTime::parse_from_str(date_str, "%Y-%m-%d %H:%M");
+    match d {
+        Ok(n) => n,
+        Err(_) => {
+            let date_time = DateTime::parse_from_str(date_str, "%Y-%m-%dT%H:%M:%S%z").unwrap();
+            date_time.naive_local()
         }
     }
 }
@@ -136,6 +145,20 @@ mod tests {
     use filepath::FilePath;
 
     use super::*;
+
+    #[test]
+    fn should_parse_new_date_format() {
+        let p1: PacmanEvent = "[2019-10-23T20:25:18+0200] [ALPM] installed yay (9.4.2-1)"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            p1.date,
+            NaiveDateTime::new(
+                NaiveDate::from_ymd(2019, 10, 23),
+                NaiveTime::from_hms(20, 25, 18)
+            )
+        )
+    }
 
     #[test]
     fn should_order_pacman_events_by_date() {
