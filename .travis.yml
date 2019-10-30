@@ -7,25 +7,22 @@ addons:
     - libssl-dev
 cache: cargo
 rust:
-- stable
-- beta
-- nightly
-matrix:
-  allow_failures:
-  - rust: nightly
+  - stable
 before_cache: |
   if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
     cargo install cargo-tarpaulin -f
   fi
 script:
-- cargo clean
-- cargo build
-- cargo test
+  - cargo clean
+  - cargo build
+  - cargo test
 after_success: |-
   if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
     cargo tarpaulin --out Xml
     bash <(curl -s https://codecov.io/bash)
   fi
+before_deploy:
+  - cargo build --release --target-dir target
 deploy:
   provider: releases
   api_key: $GITHUB_TOKEN
