@@ -24,7 +24,6 @@ jobs:
         uses: codecov/codecov-action@v1.0.2
         with:
           token: ${{secrets.CODECOV_TOKEN}}
-            - name: Create Release
               
       - name: Create release
         uses: actions/create-release@v1.0.0
