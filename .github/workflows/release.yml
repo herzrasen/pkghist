@@ -27,10 +27,6 @@ jobs:
           command: build
           args: --release --all-features  
 
-      - name: Zip it 
-        run: |
-          zip --junk-paths pkghist.zip target/release/pkghist
-
       - name: Create release
         id: create_release
         uses: actions/create-release@v1.0.0
@@ -49,6 +45,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} 
-          asset_path: ./pkghist.zip
-          asset_name: pkghist.zip
-          asset_content_type: application/zip
+          asset_path: target/release/pkghist
+          asset_name: pkghist
+          asset_content_type: application/octet-stream
