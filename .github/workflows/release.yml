@@ -27,6 +27,10 @@ jobs:
           command: build
           args: --release --all-features  
 
+      - name: Package release
+        run: |
+          tar cvfz pkghist.tar.gz completions/* -C target/release pkghist --numeric-owner
+
       - name: Create release
         id: create_release
         uses: actions/create-release@v1.0.0
@@ -45,6 +49,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} 
-          asset_path: target/release/pkghist
-          asset_name: pkghist
+          asset_path: pkghist.tar.gz
+          asset_name: pkghist.tar.gz
           asset_content_type: application/octet-stream
