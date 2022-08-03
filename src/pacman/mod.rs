@@ -9,7 +9,6 @@ use chrono::NaiveDateTime;
 
 use lazy_static::*;
 use regex::*;
-use std::error::Error as StdError;
 
 use crate::error::{Error, ErrorDetail};
 use crate::pacman::action::Action;
@@ -127,7 +126,7 @@ pub fn from_file(path: &Path) -> std::io::Result<Vec<PacmanEvent>> {
                     Err(_) => current,
                 },
                 Err(e) => {
-                    eprintln!("Skipping line #{} ({:?})", idx + 1, e.description());
+                    eprintln!("Skipping line #{} ({e})", idx + 1);
                     current
                 }
             });
