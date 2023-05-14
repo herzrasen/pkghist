@@ -55,8 +55,8 @@ mod tests {
         let mut pacman_events = Vec::new();
         pacman_events.push(PacmanEvent::new(
             NaiveDateTime::new(
-                NaiveDate::from_ymd(2019, 08, 30),
-                NaiveTime::from_hms(11, 30, 0),
+                NaiveDate::from_ymd_opt(2019, 08, 30).unwrap(),
+                NaiveTime::from_hms_opt(11, 30, 0).unwrap(),
             ),
             Action::Installed,
             String::from("a"),
@@ -65,8 +65,8 @@ mod tests {
         ));
         pacman_events.push(PacmanEvent::new(
             NaiveDateTime::new(
-                NaiveDate::from_ymd(2019, 08, 30),
-                NaiveTime::from_hms(11, 30, 0),
+                NaiveDate::from_ymd_opt(2019, 08, 30).unwrap(),
+                NaiveTime::from_hms_opt(11, 30, 0).unwrap(),
             ),
             Action::Installed,
             String::from("b"),
@@ -75,8 +75,8 @@ mod tests {
         ));
         pacman_events.push(PacmanEvent::new(
             NaiveDateTime::new(
-                NaiveDate::from_ymd(2019, 08, 30),
-                NaiveTime::from_hms(12, 30, 0),
+                NaiveDate::from_ymd_opt(2019, 08, 30).unwrap(),
+                NaiveTime::from_hms_opt(12, 30, 0).unwrap(),
             ),
             Action::Installed,
             String::from("b"),
@@ -85,8 +85,8 @@ mod tests {
         ));
         pacman_events.push(PacmanEvent::new(
             NaiveDateTime::new(
-                NaiveDate::from_ymd(2019, 08, 30),
-                NaiveTime::from_hms(12, 31, 0),
+                NaiveDate::from_ymd_opt(2019, 08, 30).unwrap(),
+                NaiveTime::from_hms_opt(12, 31, 0).unwrap(),
             ),
             Action::Removed,
             String::from("b"),
@@ -95,8 +95,8 @@ mod tests {
         ));
         pacman_events.push(PacmanEvent::new(
             NaiveDateTime::new(
-                NaiveDate::from_ymd(2019, 08, 30),
-                NaiveTime::from_hms(12, 35, 0),
+                NaiveDate::from_ymd_opt(2019, 08, 30).unwrap(),
+                NaiveTime::from_hms_opt(12, 35, 0).unwrap(),
             ),
             Action::Installed,
             String::from("b"),
@@ -105,8 +105,8 @@ mod tests {
         ));
         pacman_events.push(PacmanEvent::new(
             NaiveDateTime::new(
-                NaiveDate::from_ymd(2019, 08, 30),
-                NaiveTime::from_hms(12, 35, 0),
+                NaiveDate::from_ymd_opt(2019, 08, 30).unwrap(),
+                NaiveTime::from_hms_opt(12, 35, 0).unwrap(),
             ),
             Action::Removed,
             String::from("c"),

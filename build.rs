@@ -1,11 +1,21 @@
-use clap::Shell;
+use std::println;
+
+use clap_complete::generate_to;
+use clap_complete::Shell;
 
 include!("src/opt/cli.rs");
 
 fn main() {
-    let outdir = "completions";
-    let mut app = build_cli();
-    app.gen_completions(env!("CARGO_PKG_NAME"), Shell::Bash, &outdir);
-    app.gen_completions(env!("CARGO_PKG_NAME"), Shell::Fish, &outdir);
-    app.gen_completions(env!("CARGO_PKG_NAME"), Shell::Zsh, &outdir)
+    let out_dir = "completions";
+    let mut command = build_cli();
+    for shell in [Shell::Bash, Shell::Fish, Shell::Zsh] {
+        match generate_to(shell, &mut command, env!("CARGO_PKG_NAME"), out_dir) {
+            Ok(_) => println!("Successfully generated {} completions", shell.to_string()),
+            Err(err) => println!(
+                "Unable to generate {} completions {}",
+                shell.to_string(),
+                err.to_string()
+            ),
+        };
+    }
 }

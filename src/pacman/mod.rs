@@ -153,8 +153,8 @@ mod tests {
         assert_eq!(
             p1.date,
             NaiveDateTime::new(
-                NaiveDate::from_ymd(2019, 10, 23),
-                NaiveTime::from_hms(20, 25, 18)
+                NaiveDate::from_ymd_opt(2019, 10, 23).unwrap(),
+                NaiveTime::from_hms_opt(20, 25, 18).unwrap()
             )
         )
     }
@@ -220,8 +220,8 @@ mod tests {
             .unwrap();
         let expected_pacman_event = PacmanEvent {
             date: NaiveDateTime::new(
-                NaiveDate::from_ymd(2019, 7, 5),
-                NaiveTime::from_hms(22, 10, 0),
+                NaiveDate::from_ymd_opt(2019, 7, 5).unwrap(),
+                NaiveTime::from_hms_opt(22, 10, 0).unwrap(),
             ),
             action: Action::Upgraded,
             package: String::from("libva"),
@@ -238,8 +238,8 @@ mod tests {
             .unwrap();
         let exptected_pacman_event = PacmanEvent {
             date: NaiveDateTime::new(
-                NaiveDate::from_ymd(2019, 6, 26),
-                NaiveTime::from_hms(10, 47, 0),
+                NaiveDate::from_ymd_opt(2019, 6, 26).unwrap(),
+                NaiveTime::from_hms_opt(10, 47, 0).unwrap(),
             ),
             action: Action::Installed,
             package: String::from("ansible"),
@@ -257,8 +257,8 @@ mod tests {
                 .unwrap();
         let expected_pacman_event = PacmanEvent {
             date: NaiveDateTime::new(
-                NaiveDate::from_ymd(2018, 12, 15),
-                NaiveTime::from_hms(0, 22, 0),
+                NaiveDate::from_ymd_opt(2018, 12, 15).unwrap(),
+                NaiveTime::from_hms_opt(0, 22, 0).unwrap(),
             ),
             action: Action::Downgraded,
             package: String::from("mps-youtube"),
@@ -275,8 +275,8 @@ mod tests {
             .unwrap();
         let exptected_pacman_event = PacmanEvent::new(
             NaiveDateTime::new(
-                NaiveDate::from_ymd(2019, 6, 26),
-                NaiveTime::from_hms(10, 47, 0),
+                NaiveDate::from_ymd_opt(2019, 6, 26).unwrap(),
+                NaiveTime::from_hms_opt(10, 47, 0).unwrap(),
             ),
             Action::Reinstalled,
             String::from("ansible"),
@@ -293,8 +293,8 @@ mod tests {
             .unwrap();
         let expected_pacman_event = PacmanEvent::new(
             NaiveDateTime::new(
-                NaiveDate::from_ymd(2019, 7, 4),
-                NaiveTime::from_hms(14, 5, 0),
+                NaiveDate::from_ymd_opt(2019, 7, 4).unwrap(),
+                NaiveTime::from_hms_opt(14, 5, 0).unwrap(),
             ),
             Action::Removed,
             String::from("gnome-common"),
