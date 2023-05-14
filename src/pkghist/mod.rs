@@ -136,8 +136,8 @@ mod tests {
     fn should_create_package_histories() {
         let ev1 = PacmanEvent::new(
             NaiveDateTime::new(
-                NaiveDate::from_ymd(2019, 9, 1),
-                NaiveTime::from_hms(12, 30, 0),
+                NaiveDate::from_ymd_opt(2019, 9, 1).unwrap(),
+                NaiveTime::from_hms_opt(12, 30, 0).unwrap(),
             ),
             Action::Installed,
             String::from("test"),
@@ -146,8 +146,8 @@ mod tests {
         );
         let ev2 = PacmanEvent::new(
             NaiveDateTime::new(
-                NaiveDate::from_ymd(2019, 9, 1),
-                NaiveTime::from_hms(18, 30, 10),
+                NaiveDate::from_ymd_opt(2019, 9, 1).unwrap(),
+                NaiveTime::from_hms_opt(18, 30, 10).unwrap(),
             ),
             Action::Upgraded,
             String::from("test"),

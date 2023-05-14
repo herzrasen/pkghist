@@ -1,5 +1,5 @@
 _pkghist() {
-    local i cur prev opts cmds
+    local i cur prev opts cmd
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
@@ -8,11 +8,10 @@ _pkghist() {
 
     for i in ${COMP_WORDS[@]}
     do
-        case "${i}" in
-            pkghist)
+        case "${cmd},${i}" in
+            ",$1")
                 cmd="pkghist"
                 ;;
-            
             *)
                 ;;
         esac
@@ -20,18 +19,17 @@ _pkghist() {
 
     case "${cmd}" in
         pkghist)
-            opts=" -r -R -x -h -V -o -l -L -a  --with-removed --removed-only --no-colors --no-details --exclude --help --version --output-format --logfile --limit --first --last --after  <filter>... "
+            opts="-o -l -r -R -L -a -x -h -V --output-format --logfile --with-removed --removed-only --limit --no-colors --no-details --first --last --after --exclude --help --version [filter]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
-                
                 --output-format)
                     COMPREPLY=($(compgen -W "json plain compact" -- "${cur}"))
                     return 0
                     ;;
-                    -o)
+                -o)
                     COMPREPLY=($(compgen -W "json plain compact" -- "${cur}"))
                     return 0
                     ;;
@@ -39,7 +37,7 @@ _pkghist() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                    -l)
+                -l)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -47,7 +45,7 @@ _pkghist() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                    -L)
+                -L)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -63,7 +61,7 @@ _pkghist() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                    -a)
+                -a)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -74,7 +72,6 @@ _pkghist() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        
     esac
 }
 

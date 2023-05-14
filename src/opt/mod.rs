@@ -1,3 +1,4 @@
+use std::println;
 use std::str::FromStr;
 
 use crate::error::Error;
@@ -10,7 +11,7 @@ use regex::Regex;
 
 pub mod cli;
 
-pub fn parse_args<'a>(argv: &[String]) -> ArgMatches<'a> {
+pub fn parse_args<'a>(argv: &[String]) -> ArgMatches {
     cli::build_cli().get_matches_from(argv)
 }
 
@@ -70,6 +71,7 @@ impl Direction {
     }
 }
 
+#[derive(Debug)]
 pub struct Config {
     pub exclude: bool,
     pub removed_only: bool,
@@ -107,22 +109,26 @@ impl Config {
     }
 
     pub fn from_arg_matches(matches: &ArgMatches) -> Config {
-        let filters = match matches.values_of("filter") {
-            Some(filters) => filters.fold(Vec::new(), |mut current, f| match f.parse() {
-                Ok(regex) => {
-                    current.push(regex);
-                    current
-                }
-                Err(_) => current,
+        let filters = match matches.get_many::<String>("filter") {
+            Some(filters) => filters.fold(Vec::new(), |mut current, f| {
+                println!("{}", f);
+                let r = Regex::new(f).unwrap();
+                current.push(r);
+                current
             }),
             None => Vec::new(),
         };
 
-        let with_colors = !matches.is_present("no-colors");
+        let with_colors = !matches.get_flag("no-colors");
 
-        let without_details = matches.is_present("no-details");
+        let without_details = matches.get_flag("no-details");
 
-        let format = match matches.value_of("output-format").unwrap().parse().unwrap() {
+        let format = match matches
+            .get_one::<String>("output-format")
+            .unwrap()
+            .parse()
+            .unwrap()
+        {
             Format::Plain { .. } => Format::Plain {
                 with_colors,
                 without_details,
@@ -134,25 +140,25 @@ impl Config {
             Format::Json { .. } => Format::Json { without_details },
         };
 
-        let limit = match matches.value_of("limit") {
-            Some("all") => None,
+        let limit = match matches.get_one::<String>("limit") {
+            Some(all) if all == "all" => None,
             Some(v) => Some(v.parse::<u32>().unwrap()),
             None => None,
         };
 
-        let direction = if matches.is_present("first") {
+        let direction = if matches.contains_id("first") {
             Some(Direction::from_first(
-                matches.value_of("first").unwrap().parse().unwrap(),
+                matches.get_one::<String>("first").unwrap().parse().unwrap(),
             ))
-        } else if matches.is_present("last") {
+        } else if matches.contains_id("last") {
             Some(Direction::from_last(
-                matches.value_of("last").unwrap().parse().unwrap(),
+                matches.get_one::<String>("last").unwrap().parse().unwrap(),
             ))
         } else {
             None
         };
 
-        let after = match matches.value_of("after") {
+        let after = match matches.get_one::<String>("after") {
             Some(date_str) => {
                 Some(NaiveDateTime::parse_from_str(date_str, "%Y-%m-%d %H:%M").unwrap())
             }
@@ -160,10 +166,10 @@ impl Config {
         };
 
         Config {
-            exclude: matches.is_present("exclude"),
-            removed_only: matches.is_present("removed-only"),
-            with_removed: matches.is_present("with-removed"),
-            logfile: String::from(matches.value_of("logfile").unwrap()),
+            exclude: matches.get_flag("exclude"),
+            removed_only: matches.get_flag("removed-only"),
+            with_removed: matches.get_flag("with-removed"),
+            logfile: matches.get_one::<String>("logfile").unwrap().to_owned(),
             limit,
             filters,
             format,
@@ -175,6 +181,8 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
+    use std::println;
+
     use super::*;
     use chrono::{NaiveDate, NaiveTime};
 
@@ -298,6 +306,7 @@ mod tests {
     fn should_create_config_from_args_no_colors() {
         let matches = parse_args(&[String::from("pkghist"), String::from("--no-colors")]);
         let config = Config::from_arg_matches(&matches);
+        println!("{:?}", config);
         assert_eq!(config.logfile, "/var/log/pacman.log");
         assert_eq!(config.filters.is_empty(), true);
         assert_eq!(config.with_removed, false);
@@ -464,8 +473,8 @@ mod tests {
         assert_eq!(
             config.after,
             Some(NaiveDateTime::new(
-                NaiveDate::from_ymd(2019, 1, 1),
-                NaiveTime::from_hms(12, 0, 0)
+                NaiveDate::from_ymd_opt(2019, 1, 1).unwrap(),
+                NaiveTime::from_hms_opt(12, 0, 0).unwrap(),
             ))
         )
     }
